@@ -1,75 +1,87 @@
-import { describe, expect, test } from "@jest/globals";
+import { expect, test } from "@jest/globals";
 import { Tfx, tfx } from "../src/core";
 
-describe("Tfx constructor", () => {
-  test("resolves", async () => {
-    const v1 = await Tfx(() => 1).exec({});
-    expect(v1).toBe(1);
+test("resolves", async () => {
+  const v1 = await Tfx(() => 1).exec({});
+  expect(v1).toBe(1);
 
-    const v2 = await Tfx(async () => 2).exec({});
-    expect(v2).toBe(2);
-  });
+  const v2 = await Tfx(async () => 2).exec({});
+  expect(v2).toBe(2);
 
-  test("catches", async () => {
-    const v1 = await Tfx(() => {
+  const v3 = await Tfx.of(3).exec({});
+  expect(v3).toBe(3);
+
+  const v4 = await Tfx.right(4).exec({});
+  expect(v4).toBe(4);
+});
+
+test("catches", async () => {
+  const v1 = await Tfx(() => {
+    throw new Error("...");
+  }).execEither({});
+  expect(v1).toMatchInlineSnapshot(`
+{
+  "_tag": "Left",
+  "left": [Error: ...],
+}
+`);
+
+  const v2 = await Tfx(() => {
+    return Promise.reject(new Error("..."));
+  }).execEither({});
+  expect(v2).toMatchInlineSnapshot(`
+{
+  "_tag": "Left",
+  "left": [Error: ...],
+}
+`);
+
+  const v3 = await Tfx.left(new Error("...")).execEither({});
+  expect(v3).toMatchInlineSnapshot(`
+{
+  "_tag": "Left",
+  "left": [Error: ...],
+}
+`);
+});
+
+test("exec", async () => {
+  try {
+    await Tfx(() => {
       throw new Error("...");
-    }).execEither({});
-    expect(v1).toMatchInlineSnapshot(`
+    }).exec({});
+    expect(1).toBe(2);
+  } catch (e) {
+    expect(e).toMatchInlineSnapshot(`[Error: ...]`);
+  }
+
+  const v2 = await Tfx(async () => 2).exec({});
+  expect(v2).toBe(2);
+});
+
+test("execEither", async () => {
+  const v1 = await Tfx(() => {
+    throw new Error("...");
+  }).execEither({});
+
+  expect(v1).toMatchInlineSnapshot(`
 {
   "_tag": "Left",
   "left": [Error: ...],
 }
 `);
 
-    const v2 = await Tfx(() => {
-      return Promise.reject(new Error("..."));
-    }).execEither({});
-    expect(v2).toMatchInlineSnapshot(`
-{
-  "_tag": "Left",
-  "left": [Error: ...],
-}
-`);
-  });
-
-  test("exec", async () => {
-    try {
-      await Tfx(() => {
-        throw new Error("...");
-      }).exec({});
-      expect(1).toBe(2);
-    } catch (e) {
-      expect(e).toMatchInlineSnapshot(`[Error: ...]`);
-    }
-
-    const v2 = await Tfx(async () => 2).exec({});
-    expect(v2).toBe(2);
-  });
-
-  test("execEither", async () => {
-    const v1 = await Tfx(() => {
-      throw new Error("...");
-    }).execEither({});
-
-    expect(v1).toMatchInlineSnapshot(`
-{
-  "_tag": "Left",
-  "left": [Error: ...],
-}
-`);
-
-    const v2 = await Tfx(async () => 2).execEither({});
-    expect(v2).toMatchInlineSnapshot(`
+  const v2 = await Tfx(async () => 2).execEither({});
+  expect(v2).toMatchInlineSnapshot(`
 {
   "_tag": "Right",
   "right": 2,
 }
 `);
-  });
 });
 
 test("as rte", async () => {
-  const v1 = await Tfx(() => 1)({})();
+  const v1 = await Tfx(() => 1).rte({})();
   expect(v1).toMatchInlineSnapshot(`
 {
   "_tag": "Right",
@@ -118,7 +130,7 @@ test("different ctx", async () => {
   type D2 = {
     count2: number;
   };
-  const y: tfx<D1, number> = Tfx((d) => d.count1 * 1);
+  const y = Tfx((d: D1) => d.count1 * 1);
   const z: tfx<D2, number> = Tfx(async (d) => d.count2 * 2);
 
   const x: tfx<D1 & D2, number> = Tfx(async (ctx) => {
@@ -133,4 +145,26 @@ test("different ctx", async () => {
       count2: 2,
     })
   ).toBe(5);
+});
+
+test("map", async () => {
+  const v1 = await Tfx(() => 1)
+    .map((it) => it + 1)
+    .exec({});
+  expect(v1).toBe(2);
+});
+
+test("flatMap", async () => {
+  const addOne = (it: number) => Tfx(() => it + 1);
+  const v1 = await Tfx(() => 1)
+    .flatMap(addOne)
+    .exec({});
+  expect(v1).toBe(2);
+});
+
+test("chain", async () => {
+  const v1 = await Tfx(() => 1)
+    .chain((it) => Tfx.of(String(it)))
+    .exec({});
+  expect(v1).toBe("1");
 });
