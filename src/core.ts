@@ -38,7 +38,7 @@ export type TfxRte<R extends object, A> = Reader<R, Task<Either<any, A>>>;
 /**
  * Adds the `use` function to the context.
  */
-export type AddUse<R extends object> = R & {
+export type CreateContext<R extends object> = R & {
   /**
    * Transforms a `tfx` into a plain promise.
    * Returns a successful promise if the `tfx` succeeds,
@@ -55,7 +55,7 @@ export type AddUse<R extends object> = R & {
  * If the callback returns a value or promise of a value, the `tfx` value will be of that value.
  */
 export type TfxCallback<R extends object, A> = (
-  ctx: AddUse<R>
+  ctx: CreateContext<R>
 ) => Promise<A> | A;
 
 const unwrapEither = <E, A>(e: Either<E, A>): A => {
@@ -135,7 +135,7 @@ export class tfx<R extends object, A> {
    * If `f` throws an error or returns a rejected promise, the returned `tfx` will fail with that error.
    */
   tfx<B, R2 extends R>(
-    f: (a: A, ctx: AddUse<R2>) => B | Promise<B>
+    f: (a: A, ctx: CreateContext<R2>) => B | Promise<B>
   ): tfx<R2, B> {
     return new tfx(
       chainRte(this.rte, (a) => TfxRte<R2, B>((ctx) => f(a, ctx)))

@@ -1,4 +1,4 @@
-import { AddUse, tfx } from "../../src/core";
+import { CreateContext, tfx } from "../../src/core";
 
 // start database mock
 
@@ -26,4 +26,4 @@ type ContextInput = {
 };
 
 export type WebTfx<A> = tfx<ContextInput, A>;
-export type WebCtx = AddUse<ContextInput>;
+export type WebCtx = CreateContext<ContextInput>;
