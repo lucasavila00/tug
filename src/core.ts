@@ -29,11 +29,13 @@ export type Task<A> = () => Promise<A>;
  */
 export type Reader<R, A> = (r: R) => A;
 
+type TugError = unknown;
+
 /**
  * A reader function that reads R, and returns a task that returns A.
  * This is the core type of this library.
  */
-export type TugRte<R extends object, A> = Reader<R, Task<Either<any, A>>>;
+export type TugRte<R extends object, A> = Reader<R, Task<Either<TugError, A>>>;
 
 /**
  * Adds the `use` function to the context.
@@ -103,7 +105,7 @@ export class tug<R extends object, A> {
    * If the `tug` fails, the promise will be resolved with a `Left`.
    * If the `tug` succeeds, the promise will be resolved with a `Right`.
    */
-  execEither(deps: R): Promise<Either<any, A>> {
+  execEither(deps: R): Promise<Either<TugError, A>> {
     return this.rte(deps)();
   }
 

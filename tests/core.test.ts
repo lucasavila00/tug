@@ -161,7 +161,7 @@ test("flatMap", async () => {
   expect(v1).toBe("1");
 });
 
-test("tug", async () => {
+test("tug transform", async () => {
   const v0 = Tug.of(3);
   const v1 = await Tug(() => 1)
     .tug(async (it, ctx) => it + (await ctx.use(v0)))

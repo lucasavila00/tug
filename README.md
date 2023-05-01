@@ -2,11 +2,7 @@
 
 Write testable code.
 
-- Typed Dependency Injection
-- Value-Based Exceptions
-- Retryable Promises
-- 0 dependencies
-- Less than 2kb (minified & gzipped)
+TODO
 
 ## Install
 
@@ -14,18 +10,19 @@ TODO
 
 ## Getting started
 
-Define your dependencies
+Define the dependencies
 
 ```ts
 import { CreateContext } from "tug";
 
 type WebAppDependencies = {
   db: () => Promise<Database>;
+  currentUserId: () => Promise<string | undefined>;
 };
 type WebAppCtx = CreateContext<WebAppDependencies>;
 ```
 
-Construct `tug` instances
+Construct `tug`s
 
 ```ts
 import { Tug } from "tug";
@@ -72,6 +69,10 @@ const orderId = "order-123";
 const result = await canUserEditOrder(userId, orderId).exec(deps);
 ```
 
+## Examples
+
+TODO
+
 ## API Overview
 
 ### Types
@@ -79,8 +80,12 @@ const result = await canUserEditOrder(userId, orderId).exec(deps);
 TODO
 
 ```ts
-export type WebTug<A> = tug<ContextInput, A>;
-export type WebCtx = CreateContext<ContextInput>;
+type WebAppDependencies = {
+  db: () => Promise<Database>;
+  currentUserId: () => Promise<string | undefined>;
+};
+type WebAppTug<A> = tug<WebAppDependencies, A>;
+type WebAppCtx = CreateContext<WebAppDependencies>;
 ```
 
 ### Context & `use` function
@@ -112,28 +117,54 @@ const fail3 = Tug(() => Promise.reject(new Error("it failed")));
 
 ### Transform
 
-#### Map
+#### `tug` transform
 
-TODO
+Applies a function `f` to the current `tug` value, if the current value is successful. `f` works like the `Tug` constructor.
+
+`f` can use the `tug` context and it returns a value or promise.
+Rejections and errors make the `tug` fail.
 
 ```ts
-TODO;
+const getLoggedInUserId = () =>
+  Tug(async (ctx: WebAppCtx) => {
+    const userId = await ctx.currentUserId();
+    if (userId == null) {
+      throw new Error("User is not logged in");
+    }
+    return userId;
+  });
+
+const getLoggedInUser = () =>
+  getLoggedInUserId().tug(async (id, ctx) => {
+    const db = await ctx.db();
+    const user = await db.collection<UserData>("users").findOne({ id });
+    if (user == null) {
+      throw new Error("user does not exist");
+    }
+    return user;
+  });
+```
+
+#### Map
+
+Returns a new `tug` with the contents of the current one applied to function `f`, if the current one is successful.
+
+```ts
+const v0 = Tug.of(0);
+const v1 = v0.map((it) => it + 1);
+console.log(v1.exec({})); // 2
 ```
 
 #### Flat Map & Chain
 
-TODO
+Returns a new `tug` with the contents of the current one applied to function `f`, if the current one is successful.
+
+`f` must return a `tug` which will be flattened out with the current result.
 
 ```ts
-TODO;
-```
-
-#### TFX transform
-
-TODO
-
-```ts
-TODO;
+const v0 = Tug.of(0);
+const v1 = v0.flatMap((it) => Tug.of(it + 1)); // or v0.chain((it) => Tug.of(it + 1));
+console.log(v1.exec({})); // 2
 ```
 
 ### Value-Based Exceptions
@@ -141,7 +172,7 @@ TODO;
 Use `execEither` to execute the `tug` and get the result as an `Either`.
 
 ```ts
-// returns an Either of an error and the `tug` value
+// returns an Either<any, T> where T is the tug value
 const either = await canUserEditOrder(userId, orderId).execEither(deps);
 expect(either).toEqual({ _tag: "Right", right: true });
 ```
@@ -160,7 +191,15 @@ type Right<A> = {
 type Either<E, A> = Left<E> | Right<A>;
 ```
 
-## Alternatives
+## Why use tug?
+
+- Typed Dependency Injection
+- Value-Based Exceptions
+- Retryable Promises
+- 0 dependencies
+- Less than 2kb (minified & gzipped)
+
+### Alternatives
 
 `tug` is inspired by `fp-ts` ReaderTaskEither and `effect-ts`, but focuses on:
 
@@ -169,8 +208,8 @@ type Either<E, A> = Left<E> | Right<A>;
 - simpler Typescript compile errors
 - no focus on pure functional programming and HKT
 
-TIP: The internal state of `tug` is a ReaderTaskEither and can be accessed with the `.rte` accessor.
 
-## Fp-ts compatibility
+### Fp-ts compatibility
 
-TODO
+TODO: The internal state of `tug` is a ReaderTaskEither and can be accessed with the `.rte` accessor.
+TODO make it method
