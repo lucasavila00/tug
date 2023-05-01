@@ -1,4 +1,4 @@
-import { Dependency } from "../../../src/core";
-import * as Core from "./core";
+import { Dependency, tugReturns } from "../../../src/core";
+import { OrderModuleTug } from "./core";
 
-export const OrderModule = Dependency<typeof Core>();
+export const OrderModule = Dependency<tugReturns<typeof OrderModuleTug>>();

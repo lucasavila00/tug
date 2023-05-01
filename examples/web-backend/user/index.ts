@@ -1,4 +1,4 @@
-import { Dependency } from "../../../src/core";
-import * as Core from "./core";
+import { Dependency, tugReturns } from "../../../src/core";
+import { UserModuleTug } from "./core";
 
-export const UserModule = Dependency<typeof Core>();
+export const UserModule = Dependency<tugReturns<typeof UserModuleTug>>();

@@ -1,4 +1,4 @@
-import { Dependency } from "../../../src/core";
-import * as AuthModule from "./core";
+import { Dependency, tugReturns } from "../../../src/core";
+import { AuthModuleTug } from "./core";
 
-export const AuthDependency = Dependency<typeof AuthModule>();
+export const AuthModule = Dependency<tugReturns<typeof AuthModuleTug>>();

@@ -1,9 +1,7 @@
-- [ ] should it have "init" as tRPC?
-
 - [ ] error recovering (fold?)
+- [ ] RTE compatibility
 - [ ] 100% test coverage
 
-- [ ] test for widening
 - [ ] JTD
 - [ ] docs
 - [ ] build in CI

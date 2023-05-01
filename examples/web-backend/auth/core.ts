@@ -15,7 +15,9 @@ const getLoggedInUserId = () =>
     return userId;
   });
 
-export const getLoggedInUser = () =>
-  getLoggedInUserId().tug(async (it, ctx) => {
-    return await ctx.use(ctx.read(UserModule).getUserById(it));
-  });
+const getLoggedInUser = () =>
+  getLoggedInUserId().tug((it, ctx) => ctx.read(UserModule).getUserById(it));
+
+export const AuthModuleTug = AuthTug((ctx) => ({
+  getLoggedInUser: ctx.useCallback(getLoggedInUser),
+}));

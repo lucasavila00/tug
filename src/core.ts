@@ -151,6 +151,9 @@ const chainRpe =
       }
     });
 
+export type tugReturns<T extends tugC<any, any>> = T extends tugC<any, infer R>
+  ? R
+  : never;
 /**
  * The `tug` instance.
  */
@@ -221,6 +224,11 @@ export class tugC<R extends EmptyObject, A> {
       chainRpe(this.rpe, (a) => tugC.TugRpe<R2, B>((ctx) => f(a, ctx)))
     );
   }
+
+  public flatten: A extends tugC<any, infer A2> ? () => tugC<R, A2> : never =
+    (() => {
+      return this.chain((it) => it as any);
+    }) as any;
 
   /**
    * Takes a function `f` that returns another `tug` instance.
@@ -293,10 +301,10 @@ type TugBuilder<R0 extends EmptyObject> = {
    * Constructs a new `tug` instance, with the given value as the error.
    */
   left: <A>(it: any) => tugC<R0, A>;
-  // /**
-  //  * Constructs a `tug` instance from a Reader-Task-Either.
-  //  */
-  // fromRte: <R extends EmptyObject, A>(rte: TugRte<R, A>) => tug<R & R0, A>;
+
+  flat: <R extends EmptyObject, A>(
+    it: TugCallback<R0, tugC<R, A>>
+  ) => tugC<R | R0, A>;
 
   depends: <R extends EmptyObject>(
     it: Dependency<R>
@@ -310,9 +318,6 @@ type TugBuilder<R0 extends EmptyObject> = {
  */
 export const Tug: TugBuilder<never> = new Proxy(tugC.newTug, {
   get: (target, prop, _receiver) => {
-    if (prop == "tug") {
-      return target;
-    }
     if (prop == "of" || prop == "right") {
       return <T>(it: T) => tugC.newTug(() => it);
     }

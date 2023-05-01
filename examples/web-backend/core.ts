@@ -1,4 +1,4 @@
-import { Dependency } from "../../src/core";
+import { Dependency, Tug } from "../../src/core";
 
 // start database mock
 
@@ -29,3 +29,7 @@ export namespace Capacities {
     currentUserId: () => Promise<string | undefined>;
   }>();
 }
+
+export const CapacitiesTug = Tug.depends(Capacities.UserContext)
+  .depends(Capacities.Db)
+  .depends(Capacities.Logger);

@@ -4,7 +4,7 @@ import { OrderData } from "./types";
 
 const OrderTug = Tug.depends(Capacities.Db);
 
-export const getOrdersByUserId = (userId: string) =>
+const getOrdersByUserId = (userId: string) =>
   OrderTug(async (ctx) => {
     const db = await ctx.read(Capacities.Db).db();
     const orders = await db
@@ -13,14 +13,14 @@ export const getOrdersByUserId = (userId: string) =>
     return orders;
   });
 
-export const getAllOrders = () =>
+const getAllOrders = () =>
   OrderTug(async (ctx) => {
     const db = await ctx.read(Capacities.Db).db();
     const orders = await db.collection<OrderData>("orders").findMany();
     return orders;
   });
 
-export const getOrderById = (id: string) =>
+const getOrderById = (id: string) =>
   OrderTug(async (ctx) => {
     const db = await ctx.read(Capacities.Db).db();
     const order = await db.collection<OrderData>("orders").findOne({ id });
@@ -30,7 +30,7 @@ export const getOrderById = (id: string) =>
     return order;
   });
 
-export const insertOrder = (order: OrderData) =>
+const insertOrder = (order: OrderData) =>
   OrderTug(async (ctx) => {
     const db = await ctx.read(Capacities.Db).db();
     const insertedOrder = await db
@@ -39,7 +39,7 @@ export const insertOrder = (order: OrderData) =>
     return insertedOrder;
   });
 
-export const deleteOrder = (id: string) =>
+const deleteOrder = (id: string) =>
   OrderTug(async (ctx) => {
     const db = await ctx.read(Capacities.Db).db();
     const deletedOrder = await db
@@ -47,3 +47,11 @@ export const deleteOrder = (id: string) =>
       .deleteOne({ id });
     return deletedOrder;
   });
+
+export const OrderModuleTug = OrderTug((ctx) => ({
+  getOrdersByUserId: ctx.useCallback(getOrdersByUserId),
+  getAllOrders: ctx.useCallback(getAllOrders),
+  getOrderById: ctx.useCallback(getOrderById),
+  insertOrder: ctx.useCallback(insertOrder),
+  deleteOrder: ctx.useCallback(deleteOrder),
+}));
