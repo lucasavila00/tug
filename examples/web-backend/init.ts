@@ -1,16 +1,16 @@
 import { app } from "./app";
 import { AuthDependency } from "./auth";
 import { Capacities } from "./core";
-import { OrderDependency } from "./order";
-import * as OrderModule from "./order/core";
-import * as AuthModule from "./auth/core";
-import * as UserModule from "./user/core";
-import { UserDependency } from "./user";
+import { OrderModule } from "./order";
+import * as OrderCore from "./order/core";
+import * as AuthCore from "./auth/core";
+import * as UserCore from "./user/core";
+import { UserModule } from "./user";
 
 const connectedApp = app
-  .provide(OrderDependency, OrderModule)
-  .provide(AuthDependency, AuthModule)
-  .provide(UserDependency, UserModule);
+  .provide(OrderModule, OrderCore)
+  .provide(AuthDependency, AuthCore)
+  .provide(UserModule, UserCore);
 
 export const start = async () => {
   const handlers = await connectedApp

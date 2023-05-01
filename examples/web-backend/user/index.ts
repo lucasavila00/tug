@@ -1,4 +1,4 @@
 import { Dependency } from "../../../src/core";
-import * as UserModule from "./core";
+import * as Core from "./core";
 
-export const UserDependency = Dependency<typeof UserModule>();
+export const UserModule = Dependency<typeof Core>();

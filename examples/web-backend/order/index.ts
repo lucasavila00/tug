@@ -1,4 +1,4 @@
 import { Dependency } from "../../../src/core";
-import * as OrderModule from "./core";
+import * as Core from "./core";
 
-export const OrderDependency = Dependency<typeof OrderModule>();
+export const OrderModule = Dependency<typeof Core>();
