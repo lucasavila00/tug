@@ -155,11 +155,18 @@ test("map", async () => {
 });
 
 test("flatMap", async () => {
-  const addOne = (it: number) => Tfx(() => it + 1);
   const v1 = await Tfx(() => 1)
-    .flatMap(addOne)
+    .flatMap((it) => Tfx.of(String(it)))
     .exec({});
-  expect(v1).toBe(2);
+  expect(v1).toBe("1");
+});
+
+test("tfx", async () => {
+  const v0 = Tfx.of(3);
+  const v1 = await Tfx(() => 1)
+    .tfx(async (it, ctx) => it + (await ctx.use(v0)))
+    .exec({});
+  expect(v1).toBe(4);
 });
 
 test("chain", async () => {
