@@ -1,4 +1,4 @@
-import { CreateContext, tfx } from "../../src/core";
+import { CreateContext, tug } from "../../src/core";
 
 // start database mock
 
@@ -25,5 +25,5 @@ type ContextInput = {
   currentUserId: () => Promise<string | undefined>;
 };
 
-export type WebTfx<A> = tfx<ContextInput, A>;
+export type WebTug<A> = tug<ContextInput, A>;
 export type WebCtx = CreateContext<ContextInput>;

@@ -1,9 +1,9 @@
-import { Tfx } from "../../src/core";
-import { WebTfx } from "./core";
+import { Tug } from "../../src/core";
+import { WebTug } from "./core";
 import { OrderData, UserData } from "./dto";
 
-export const getOrdersByUserId = (userId: string): WebTfx<OrderData[]> =>
-  Tfx(async (ctx) => {
+export const getOrdersByUserId = (userId: string): WebTug<OrderData[]> =>
+  Tug(async (ctx) => {
     const db = await ctx.db();
     const orders = await db
       .collection<OrderData>("orders")
@@ -11,15 +11,15 @@ export const getOrdersByUserId = (userId: string): WebTfx<OrderData[]> =>
     return orders;
   });
 
-export const getAllOrders = (): WebTfx<OrderData[]> =>
-  Tfx(async (ctx) => {
+export const getAllOrders = (): WebTug<OrderData[]> =>
+  Tug(async (ctx) => {
     const db = await ctx.db();
     const orders = await db.collection<OrderData>("orders").findMany();
     return orders;
   });
 
-export const getOrderById = (id: string): WebTfx<OrderData> =>
-  Tfx(async (ctx) => {
+export const getOrderById = (id: string): WebTug<OrderData> =>
+  Tug(async (ctx) => {
     const db = await ctx.db();
     const order = await db.collection<OrderData>("orders").findOne({ id });
     if (order == null) {
@@ -28,8 +28,8 @@ export const getOrderById = (id: string): WebTfx<OrderData> =>
     return order;
   });
 
-export const insertOrder = (order: OrderData): WebTfx<OrderData> =>
-  Tfx(async (ctx) => {
+export const insertOrder = (order: OrderData): WebTug<OrderData> =>
+  Tug(async (ctx) => {
     const db = await ctx.db();
     const insertedOrder = await db
       .collection<OrderData>("orders")
@@ -37,8 +37,8 @@ export const insertOrder = (order: OrderData): WebTfx<OrderData> =>
     return insertedOrder;
   });
 
-export const deleteOrder = (id: string): WebTfx<OrderData> =>
-  Tfx(async (ctx) => {
+export const deleteOrder = (id: string): WebTug<OrderData> =>
+  Tug(async (ctx) => {
     const db = await ctx.db();
     const deletedOrder = await db
       .collection<OrderData>("orders")
@@ -49,8 +49,8 @@ export const deleteOrder = (id: string): WebTfx<OrderData> =>
 export const canUserEditOrder = (
   user: UserData,
   orderId: string
-): WebTfx<boolean> =>
-  Tfx(async (ctx) => {
+): WebTug<boolean> =>
+  Tug(async (ctx) => {
     if (user.isAdmin) {
       return true;
     }

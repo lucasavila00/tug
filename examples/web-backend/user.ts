@@ -1,9 +1,9 @@
-import { Tfx } from "../../src/core";
-import { WebTfx } from "./core";
+import { Tug } from "../../src/core";
+import { WebTug } from "./core";
 import { UserData } from "./dto";
 
-export const getUserById = (id: string): WebTfx<UserData> =>
-  Tfx(async (ctx) => {
+export const getUserById = (id: string): WebTug<UserData> =>
+  Tug(async (ctx) => {
     const db = await ctx.db();
     const user = await db.collection<UserData>("users").findOne({ id });
     if (user == null) {
@@ -12,15 +12,15 @@ export const getUserById = (id: string): WebTfx<UserData> =>
     return user;
   });
 
-export const getAllUsers = (): WebTfx<UserData[]> =>
-  Tfx(async (ctx) => {
+export const getAllUsers = (): WebTug<UserData[]> =>
+  Tug(async (ctx) => {
     const db = await ctx.db();
     const users = await db.collection<UserData>("users").findMany();
     return users;
   });
 
-export const insertUser = (user: UserData): WebTfx<UserData> =>
-  Tfx(async (ctx) => {
+export const insertUser = (user: UserData): WebTug<UserData> =>
+  Tug(async (ctx) => {
     const db = await ctx.db();
     const insertedUser = await db.collection<UserData>("users").insertOne(user);
     return insertedUser;

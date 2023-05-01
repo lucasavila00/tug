@@ -1,22 +1,22 @@
 import { expect, test } from "@jest/globals";
-import { Tfx, tfx } from "../src/core";
+import { Tug, tug } from "../src/core";
 
 test("resolves", async () => {
-  const v1 = await Tfx(() => 1).exec({});
+  const v1 = await Tug(() => 1).exec({});
   expect(v1).toBe(1);
 
-  const v2 = await Tfx(async () => 2).exec({});
+  const v2 = await Tug(async () => 2).exec({});
   expect(v2).toBe(2);
 
-  const v3 = await Tfx.of(3).exec({});
+  const v3 = await Tug.of(3).exec({});
   expect(v3).toBe(3);
 
-  const v4 = await Tfx.right(4).exec({});
+  const v4 = await Tug.right(4).exec({});
   expect(v4).toBe(4);
 });
 
 test("catches", async () => {
-  const v1 = await Tfx(() => {
+  const v1 = await Tug(() => {
     throw new Error("...");
   }).execEither({});
   expect(v1).toMatchInlineSnapshot(`
@@ -26,7 +26,7 @@ test("catches", async () => {
 }
 `);
 
-  const v2 = await Tfx(() => {
+  const v2 = await Tug(() => {
     return Promise.reject(new Error("..."));
   }).execEither({});
   expect(v2).toMatchInlineSnapshot(`
@@ -36,7 +36,7 @@ test("catches", async () => {
 }
 `);
 
-  const v3 = await Tfx.left(new Error("...")).execEither({});
+  const v3 = await Tug.left(new Error("...")).execEither({});
   expect(v3).toMatchInlineSnapshot(`
 {
   "_tag": "Left",
@@ -47,7 +47,7 @@ test("catches", async () => {
 
 test("exec", async () => {
   try {
-    await Tfx(() => {
+    await Tug(() => {
       throw new Error("...");
     }).exec({});
     expect(1).toBe(2);
@@ -55,12 +55,12 @@ test("exec", async () => {
     expect(e).toMatchInlineSnapshot(`[Error: ...]`);
   }
 
-  const v2 = await Tfx(async () => 2).exec({});
+  const v2 = await Tug(async () => 2).exec({});
   expect(v2).toBe(2);
 });
 
 test("execEither", async () => {
-  const v1 = await Tfx(() => {
+  const v1 = await Tug(() => {
     throw new Error("...");
   }).execEither({});
 
@@ -71,7 +71,7 @@ test("execEither", async () => {
 }
 `);
 
-  const v2 = await Tfx(async () => 2).execEither({});
+  const v2 = await Tug(async () => 2).execEither({});
   expect(v2).toMatchInlineSnapshot(`
 {
   "_tag": "Right",
@@ -81,7 +81,7 @@ test("execEither", async () => {
 });
 
 test("as rte", async () => {
-  const v1 = await Tfx(() => 1).rte({})();
+  const v1 = await Tug(() => 1).rte({})();
   expect(v1).toMatchInlineSnapshot(`
 {
   "_tag": "Right",
@@ -91,10 +91,10 @@ test("as rte", async () => {
 });
 
 test("use", async () => {
-  const y = Tfx(() => 1);
-  const z = Tfx(() => 2);
+  const y = Tug(() => 1);
+  const z = Tug(() => 2);
 
-  const x = Tfx(async (ctx) => {
+  const x = Tug(async (ctx) => {
     const a = await ctx.use(y);
     const b = await ctx.use(z);
     return a + b;
@@ -107,10 +107,10 @@ test("same ctx", async () => {
   type D = {
     count: number;
   };
-  const y: tfx<D, number> = Tfx((d) => d.count * 1);
-  const z: tfx<D, number> = Tfx(async (d) => d.count * 2);
+  const y: tug<D, number> = Tug((d) => d.count * 1);
+  const z: tug<D, number> = Tug(async (d) => d.count * 2);
 
-  const x: tfx<D, number> = Tfx(async (ctx) => {
+  const x: tug<D, number> = Tug(async (ctx) => {
     const a = await ctx.use(y);
     const b = await ctx.use(z);
     return a + b;
@@ -130,10 +130,10 @@ test("different ctx", async () => {
   type D2 = {
     count2: number;
   };
-  const y = Tfx((d: D1) => d.count1 * 1);
-  const z: tfx<D2, number> = Tfx(async (d) => d.count2 * 2);
+  const y = Tug((d: D1) => d.count1 * 1);
+  const z: tug<D2, number> = Tug(async (d) => d.count2 * 2);
 
-  const x: tfx<D1 & D2, number> = Tfx(async (ctx) => {
+  const x: tug<D1 & D2, number> = Tug(async (ctx) => {
     const a = await ctx.use(y);
     const b = await ctx.use(z);
     return a + b;
@@ -148,30 +148,30 @@ test("different ctx", async () => {
 });
 
 test("map", async () => {
-  const v1 = await Tfx(() => 1)
+  const v1 = await Tug(() => 1)
     .map((it) => it + 1)
     .exec({});
   expect(v1).toBe(2);
 });
 
 test("flatMap", async () => {
-  const v1 = await Tfx(() => 1)
-    .flatMap((it) => Tfx.of(String(it)))
+  const v1 = await Tug(() => 1)
+    .flatMap((it) => Tug.of(String(it)))
     .exec({});
   expect(v1).toBe("1");
 });
 
-test("tfx", async () => {
-  const v0 = Tfx.of(3);
-  const v1 = await Tfx(() => 1)
-    .tfx(async (it, ctx) => it + (await ctx.use(v0)))
+test("tug", async () => {
+  const v0 = Tug.of(3);
+  const v1 = await Tug(() => 1)
+    .tug(async (it, ctx) => it + (await ctx.use(v0)))
     .exec({});
   expect(v1).toBe(4);
 });
 
 test("chain", async () => {
-  const v1 = await Tfx(() => 1)
-    .chain((it) => Tfx.of(String(it)))
+  const v1 = await Tug(() => 1)
+    .chain((it) => Tug.of(String(it)))
     .exec({});
   expect(v1).toBe("1");
 });

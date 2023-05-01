@@ -1,8 +1,8 @@
-import { Tfx } from "../../src/core";
+import { Tug } from "../../src/core";
 import * as User from "./user";
 
 const getLoggedInUserId = () =>
-  Tfx(async (ctx: { currentUserId: () => Promise<string | undefined> }) => {
+  Tug(async (ctx: { currentUserId: () => Promise<string | undefined> }) => {
     const userId = await ctx.currentUserId();
     if (userId == null) {
       throw new Error("User is not logged in");

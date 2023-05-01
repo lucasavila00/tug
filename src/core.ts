@@ -33,28 +33,28 @@ export type Reader<R, A> = (r: R) => A;
  * A reader function that reads R, and returns a task that returns A.
  * This is the core type of this library.
  */
-export type TfxRte<R extends object, A> = Reader<R, Task<Either<any, A>>>;
+export type TugRte<R extends object, A> = Reader<R, Task<Either<any, A>>>;
 
 /**
  * Adds the `use` function to the context.
  */
 export type CreateContext<R extends object> = R & {
   /**
-   * Transforms a `tfx` into a plain promise.
-   * Returns a successful promise if the `tfx` succeeds,
-   * or a rejected promise if the `tfx` fails.
+   * Transforms a `tug` into a plain promise.
+   * Returns a successful promise if the `tug` succeeds,
+   * or a rejected promise if the `tug` fails.
    */
-  use: <T>(it: tfx<R, T>) => Promise<T>;
+  use: <T>(it: tug<R, T>) => Promise<T>;
 };
 
 /**
  * A callback that takes a context and returns a value or promise of a value.
  * The context contains the `use` function.
  *
- * If the callback throws an error or returns a rejected promise, the `tfx` value will be an error.
- * If the callback returns a value or promise of a value, the `tfx` value will be of that value.
+ * If the callback throws an error or returns a rejected promise, the `tug` value will be an error.
+ * If the callback returns a value or promise of a value, the `tug` value will be of that value.
  */
-export type TfxCallback<R extends object, A> = (
+export type TugCallback<R extends object, A> = (
   ctx: CreateContext<R>
 ) => Promise<A> | A;
 
@@ -66,25 +66,11 @@ const unwrapEither = <E, A>(e: Either<E, A>): A => {
   }
 };
 
-const mapEither = <E, A, B>(e: Either<E, A>, f: (a: A) => B): Either<E, B> => {
-  if (e._tag === "Right") {
-    return { _tag: "Right", right: f(e.right) };
-  } else {
-    return e;
-  }
-};
-
-const mapRte =
-  <R extends object, A, B>(rte: TfxRte<R, A>, f: (a: A) => B): TfxRte<R, B> =>
-  (deps: R) =>
-  async () =>
-    rte(deps)().then((e) => mapEither(e, f));
-
 const chainRte =
   <R extends object, A, B>(
-    rte: TfxRte<R, A>,
-    f: (a: A) => TfxRte<R, B>
-  ): TfxRte<R, B> =>
+    rte: TugRte<R, A>,
+    f: (a: A) => TugRte<R, B>
+  ): TugRte<R, B> =>
   (deps: R) =>
   async () =>
     rte(deps)().then((e) => {
@@ -96,76 +82,76 @@ const chainRte =
     });
 
 /**
- * The `tfx` instance.
+ * The `tug` instance.
  */
-export class tfx<R extends object, A> {
-  rte: TfxRte<R, A>;
-  constructor(rte: TfxRte<R, A>) {
+export class tug<R extends object, A> {
+  rte: TugRte<R, A>;
+  constructor(rte: TugRte<R, A>) {
     this.rte = rte;
   }
 
   /**
-   * Executes the `tfx` instance and returns a promise of the result.
-   * If the `tfx` fails, the promise will be rejected.
+   * Executes the `tug` instance and returns a promise of the result.
+   * If the `tug` fails, the promise will be rejected.
    */
   exec(deps: R): Promise<A> {
-    return this.rte(deps)().then(unwrapEither);
+    return this.execEither(deps).then(unwrapEither);
   }
 
   /**
-   * Executes the `tfx` instance and returns a promise of an `Either`.
-   * If the `tfx` fails, the promise will be resolved with a `Left`.
-   * If the `tfx` succeeds, the promise will be resolved with a `Right`.
+   * Executes the `tug` instance and returns a promise of an `Either`.
+   * If the `tug` fails, the promise will be resolved with a `Left`.
+   * If the `tug` succeeds, the promise will be resolved with a `Right`.
    */
   execEither(deps: R): Promise<Either<any, A>> {
     return this.rte(deps)();
   }
 
   /**
-   * Takes a function `f` and applies it to the value of `this` `tfx`.
+   * Takes a function `f` and applies it to the value of `this` `tug`.
    */
-  map<B, R2 extends R>(f: (a: A) => B): tfx<R2, B> {
-    return new tfx(mapRte(this.rte, f));
+  map<B, R2 extends R>(f: (a: A) => B): tug<R2, B> {
+    return this.tug(f);
   }
 
   /**
    * Takes a function `f` that receives the value of `this` can resolve to a value or reject a promise.
-   * If `this` `tfx` succeeded, the returned `tfx` will succeed with the value returned by `f`.
-   * If `this` `tfx` failed, the returned `tfx` will fail with the same error.
-   * If `f` throws an error or returns a rejected promise, the returned `tfx` will fail with that error.
+   * If `this` `tug` succeeded, the returned `tug` will succeed with the value returned by `f`.
+   * If `this` `tug` failed, the returned `tug` will fail with the same error.
+   * If `f` throws an error or returns a rejected promise, the returned `tug` will fail with that error.
    */
-  tfx<B, R2 extends R>(
+  tug<B, R2 extends R>(
     f: (a: A, ctx: CreateContext<R2>) => B | Promise<B>
-  ): tfx<R2, B> {
-    return new tfx(
-      chainRte(this.rte, (a) => TfxRte<R2, B>((ctx) => f(a, ctx)))
+  ): tug<R2, B> {
+    return new tug(
+      chainRte(this.rte, (a) => TugRte<R2, B>((ctx) => f(a, ctx)))
     );
   }
 
   /**
-   * Takes a function `f` that returns another `tfx` instance.
-   * If `this` `tfx` failed, the returned `tfx` will fail with the same error.
-   * If `this` `tfx` succeeded, the returned `tfx` will be the result of `f` applied to the value of `this`.
+   * Takes a function `f` that returns another `tug` instance.
+   * If `this` `tug` failed, the returned `tug` will fail with the same error.
+   * If `this` `tug` succeeded, the returned `tug` will be the result of `f` applied to the value of `this`.
    */
-  flatMap<B, R2 extends R>(f: (a: A) => tfx<R2, B>): tfx<R2, B> {
-    return new tfx(chainRte(this.rte, (a) => f(a).rte));
+  flatMap<B, R2 extends R>(f: (a: A) => tug<R2, B>): tug<R2, B> {
+    return new tug(chainRte(this.rte, (a) => f(a).rte));
   }
 
   /**
    * Alias for `flatMap`.
    */
-  chain<B, R2 extends R>(f: (a: A) => tfx<R2, B>): tfx<R2, B> {
-    return new tfx(chainRte(this.rte, (a) => f(a).rte));
+  chain<B, R2 extends R>(f: (a: A) => tug<R2, B>): tug<R2, B> {
+    return new tug(chainRte(this.rte, (a) => f(a).rte));
   }
 }
 
-const TfxRte =
-  <R extends object, A>(cb: TfxCallback<R, A>): TfxRte<R, A> =>
+const TugRte =
+  <R extends object, A>(cb: TugCallback<R, A>): TugRte<R, A> =>
   (ctx: R) =>
   async () => {
     const newCtx = {
       ...ctx,
-      use: <T>(it: tfx<any, T>): Promise<T> =>
+      use: <T>(it: tug<any, T>): Promise<T> =>
         it.rte(newCtx)().then(unwrapEither),
     };
 
@@ -179,49 +165,49 @@ const TfxRte =
     }
   };
 
-const BuildTfx = <R extends object, A>(cb: TfxCallback<R, A>): tfx<R, A> =>
-  new tfx(TfxRte(cb));
+const newTug = <R extends object, A>(cb: TugCallback<R, A>): tug<R, A> =>
+  new tug(TugRte(cb));
 
-type TfxBuilder = {
+type TugBuilder = {
   /**
-   * Constructs a new `tfx` instance. The callback is executed when the `tfx` is executed.
+   * Constructs a new `tug` instance. The callback is executed when the `tug` is executed.
    *
-   * If the callback throws an error or returns a rejected promise, the `tfx` value will be an error.
-   * If the callback returns a value or promise of a value, the `tfx` value will be of that value.
+   * If the callback throws an error or returns a rejected promise, the `tug` value will be an error.
+   * If the callback returns a value or promise of a value, the `tug` value will be of that value.
    *
-   * The callback is passed a context object, which contains the dependencies of the `tfx`, and the `use` function.
+   * The callback is passed a context object, which contains the dependencies of the `tug`, and the `use` function.
    */
-  <R extends object, A>(cb: TfxCallback<R, A>): tfx<R, A>;
+  <R extends object, A>(cb: TugCallback<R, A>): tug<R, A>;
   /**
-   * Constructs a new `tfx` instance, with the given value as the result.
+   * Constructs a new `tug` instance, with the given value as the result.
    */
-  of: <R extends object, A>(it: A) => tfx<R, A>;
+  of: <R extends object, A>(it: A) => tug<R, A>;
   /**
-   * Constructs a new `tfx` instance, with the given value as the result.
+   * Constructs a new `tug` instance, with the given value as the result.
    */
-  right: <R extends object, A>(it: A) => tfx<R, A>;
+  right: <R extends object, A>(it: A) => tug<R, A>;
   /**
-   * Constructs a new `tfx` instance, with the given value as the error.
+   * Constructs a new `tug` instance, with the given value as the error.
    */
-  left: <R extends object, A>(it: any) => tfx<R, A>;
+  left: <R extends object, A>(it: any) => tug<R, A>;
 };
 
 /**
- * Constructs a new `tfx` instance.
+ * Constructs a new `tug` instance.
  */
-export const Tfx: TfxBuilder = new Proxy(BuildTfx, {
+export const Tug: TugBuilder = new Proxy(newTug, {
   get: (_target, prop, _receiver) => {
     if (prop == "of" || prop == "right") {
-      return <T>(it: T) => BuildTfx(() => it);
+      return <T>(it: T) => newTug(() => it);
     }
     if (prop == "left") {
       return <T>(it: T) =>
-        BuildTfx(() => {
+        newTug(() => {
           throw it;
         });
     }
     throw new Error(
-      'Tfx does not have a property named "' + String(prop) + '"'
+      'Tug does not have a property named "' + String(prop) + '"'
     );
   },
 }) as any;
