@@ -2,9 +2,7 @@ import { Tug } from "../../../src/core";
 import { Capacities } from "../core";
 import { UserModule } from "../user";
 
-const AuthTug = Tug.depends(Capacities.UserContext)
-  .depends(Capacities.Db)
-  .depends(UserModule);
+const AuthTug = Tug.depends(Capacities.UserContext).depends(UserModule);
 
 const getLoggedInUserId = () =>
   AuthTug(async (ctx) => {
