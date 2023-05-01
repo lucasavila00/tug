@@ -15,7 +15,7 @@ type Database = {
 
 // end database mock
 
-export namespace Dependencies {
+export namespace Capacities {
   export const Logger = Dependency<{
     log: (msg: string) => void;
     error: (msg: string) => void;

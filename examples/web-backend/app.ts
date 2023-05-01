@@ -1,15 +1,14 @@
-import { Dependency, Tug } from "../../src/core";
-import { Dependencies } from "./core";
-import * as AuthModule from "./auth";
-import * as OrderModule from "./order/core";
+import { Tug } from "../../src/core";
+import { AuthDependency } from "./auth";
+import { Capacities } from "./core";
+import { OrderDependency } from "./order";
+import { UserDependency } from "./user";
 
-export const OrderDependency = Dependency<typeof OrderModule>();
-export const AuthDependency = Dependency<typeof AuthModule>();
-
-const AppTug = Tug.depends(Dependencies.UserContext)
-  .depends(Dependencies.Db)
-  .depends(Dependencies.Logger)
+const AppTug = Tug.depends(Capacities.UserContext)
+  .depends(Capacities.Db)
+  .depends(Capacities.Logger)
   .depends(AuthDependency)
+  .depends(UserDependency)
   .depends(OrderDependency);
 
 const canCurrentUserEditOrder = (orderId: string) =>
@@ -32,7 +31,12 @@ export const deleteOrderHandler = (id: string) =>
     const OrderModule = ctx.read(OrderDependency);
     const deletedData = await ctx.use(OrderModule.deleteOrder(id));
 
-    ctx.read(Dependencies.Logger).log(`Deleted order ${deletedData.id}`);
-  })
-    .provide(OrderDependency, OrderModule)
-    .provide(AuthDependency, AuthModule);
+    ctx.read(Capacities.Logger).log(`Deleted order ${deletedData.id}`);
+  });
+
+export const app = AppTug(async (ctx) => {
+  const deleteOrder = ctx.useCallback(deleteOrderHandler);
+  return {
+    deleteOrder,
+  };
+});

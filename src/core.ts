@@ -99,6 +99,18 @@ export type CreateContext<R extends EmptyObject> = {
         >
   ) => Promise<T>;
 
+  useCallback: <ARG extends any[], R2 extends EmptyObject, T>(
+    it: (
+      ...args: ARG
+    ) => [R2] extends [never]
+      ? tugC<R2, T>
+      : [R2] extends [R]
+      ? tugC<R2, T>
+      : CompileError<
+          ["child-tug uses dependency that was not annotated in parent"]
+        >
+  ) => (...args: ARG) => Promise<T>;
+
   read: <R2>(
     dependency: Dependency<R2>
   ) => [R2] extends [R]
@@ -165,9 +177,9 @@ export class tugC<R extends EmptyObject, A> {
     return this.execEither().then(unwrapEither);
   }) as any;
 
-  public provide<R2 extends EmptyObject>(
+  public provide<R2 extends EmptyObject, O extends R2>(
     tag: Dependency<R2>,
-    it: R2
+    it: O
   ): tugC<Exclude<R, R2>, A> {
     return new tugC((deps) => this.rpe({ ...deps, [tag.id]: it }));
   }
@@ -234,9 +246,13 @@ export class tugC<R extends EmptyObject, A> {
     <R extends EmptyObject, A>(cb: TugCallback<R, A>): TugRpe<R, A> =>
     async (dependencies: R) => {
       const context = {
+        read: (tag: Dependency<any>) => (dependencies as any)[tag.id],
         use: <T>(it: tugC<any, T>): Promise<T> =>
           it.rpe(dependencies).then(unwrapEither),
-        read: (tag: Dependency<any>) => (dependencies as any)[tag.id],
+        useCallback:
+          (it: (args: any) => tugC<any, any>) =>
+          (...args: any) =>
+            it(args).rpe(dependencies).then(unwrapEither),
       };
 
       try {
