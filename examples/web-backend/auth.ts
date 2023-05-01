@@ -1,8 +1,8 @@
-import { Tug } from "../../src/core";
+import { Tug } from "./core";
 import * as User from "./user";
 
 const getLoggedInUserId = () =>
-  Tug(async (ctx: { currentUserId: () => Promise<string | undefined> }) => {
+  Tug(async (ctx) => {
     const userId = await ctx.currentUserId();
     if (userId == null) {
       throw new Error("User is not logged in");

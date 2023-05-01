@@ -32,10 +32,18 @@ export type Reader<R, A> = (r: R) => A;
 type TugError = unknown;
 
 /**
- * A reader function that reads R, and returns a task that returns A.
- * This is the core type of this library.
+ * A reader function that reads R, and returns a task that returns Either<unknown, A>.
  */
 export type TugRte<R extends object, A> = Reader<R, Task<Either<TugError, A>>>;
+
+/**
+ * A reader function that reads R, and returns a Promise of Either<unknown, A>.
+ * This is the core type of this library.
+ */
+export type TugRpe<R extends object, A> = Reader<
+  R,
+  Promise<Either<TugError, A>>
+>;
 
 /**
  * Adds the `use` function to the context.
@@ -68,16 +76,15 @@ const unwrapEither = <E, A>(e: Either<E, A>): A => {
   }
 };
 
-const chainRte =
+const chainRpe =
   <R extends object, A, B>(
-    rte: TugRte<R, A>,
-    f: (a: A) => TugRte<R, B>
-  ): TugRte<R, B> =>
-  (deps: R) =>
-  async () =>
-    rte(deps)().then((e) => {
+    rte: TugRpe<R, A>,
+    f: (a: A) => TugRpe<R, B>
+  ): TugRpe<R, B> =>
+  async (deps: R) =>
+    rte(deps).then((e) => {
       if (e._tag === "Right") {
-        return f(e.right)(deps)();
+        return f(e.right)(deps);
       } else {
         return e;
       }
@@ -87,9 +94,16 @@ const chainRte =
  * The `tug` instance.
  */
 export class tug<R extends object, A> {
-  rte: TugRte<R, A>;
-  constructor(rte: TugRte<R, A>) {
-    this.rte = rte;
+  private rpe: TugRpe<R, A>;
+  constructor(rte: TugRpe<R, A>) {
+    this.rpe = rte;
+  }
+
+  /**
+   * Creates a ReaderTaskEither from a `tug` instance.
+   */
+  get rte(): TugRte<R, A> {
+    return (deps: R) => async () => this.rpe(deps);
   }
 
   /**
@@ -106,7 +120,7 @@ export class tug<R extends object, A> {
    * If the `tug` succeeds, the promise will be resolved with a `Right`.
    */
   execEither(deps: R): Promise<Either<TugError, A>> {
-    return this.rte(deps)();
+    return this.rpe(deps);
   }
 
   /**
@@ -126,7 +140,7 @@ export class tug<R extends object, A> {
     f: (a: A, ctx: CreateContext<R2>) => B | Promise<B>
   ): tug<R2, B> {
     return new tug(
-      chainRte(this.rte, (a) => TugRte<R2, B>((ctx) => f(a, ctx)))
+      chainRpe(this.rpe, (a) => TugRpe<R2, B>((ctx) => f(a, ctx)))
     );
   }
 
@@ -136,25 +150,23 @@ export class tug<R extends object, A> {
    * If `this` `tug` succeeded, the returned `tug` will be the result of `f` applied to the value of `this`.
    */
   flatMap<B, R2 extends R>(f: (a: A) => tug<R2, B>): tug<R2, B> {
-    return new tug(chainRte(this.rte, (a) => f(a).rte));
+    return new tug(chainRpe(this.rpe, (a) => f(a).rpe));
   }
 
   /**
    * Alias for `flatMap`.
    */
   chain<B, R2 extends R>(f: (a: A) => tug<R2, B>): tug<R2, B> {
-    return new tug(chainRte(this.rte, (a) => f(a).rte));
+    return new tug(chainRpe(this.rpe, (a) => f(a).rpe));
   }
 }
 
-const TugRte =
-  <R extends object, A>(cb: TugCallback<R, A>): TugRte<R, A> =>
-  (ctx: R) =>
-  async () => {
+const TugRpe =
+  <R extends object, A>(cb: TugCallback<R, A>): TugRpe<R, A> =>
+  async (ctx: R) => {
     const newCtx = {
       ...ctx,
-      use: <T>(it: tug<any, T>): Promise<T> =>
-        it.rte(newCtx)().then(unwrapEither),
+      use: <T>(it: tug<any, T>): Promise<T> => it.exec(newCtx),
     };
 
     try {
@@ -168,9 +180,9 @@ const TugRte =
   };
 
 const newTug = <R extends object, A>(cb: TugCallback<R, A>): tug<R, A> =>
-  new tug(TugRte(cb));
+  new tug(TugRpe(cb));
 
-type TugBuilder = {
+type TugBuilder<R extends object> = {
   /**
    * Constructs a new `tug` instance. The callback is executed when the `tug` is executed.
    *
@@ -179,37 +191,48 @@ type TugBuilder = {
    *
    * The callback is passed a context object, which contains the dependencies of the `tug`, and the `use` function.
    */
-  <R extends object, A>(cb: TugCallback<R, A>): tug<R, A>;
+  <A>(cb: TugCallback<R, A>): tug<R, A>;
   /**
    * Constructs a new `tug` instance, with the given value as the result.
    */
-  of: <R extends object, A>(it: A) => tug<R, A>;
+  of: <A>(it: A) => tug<R, A>;
   /**
    * Constructs a new `tug` instance, with the given value as the result.
    */
-  right: <R extends object, A>(it: A) => tug<R, A>;
+  right: <A>(it: A) => tug<R, A>;
   /**
    * Constructs a new `tug` instance, with the given value as the error.
    */
-  left: <R extends object, A>(it: any) => tug<R, A>;
+  left: <A>(it: any) => tug<R, A>;
+  /**
+   * Constructs a `tug` instance from a Reader-Task-Either.
+   */
+  fromRte: <A>(rte: TugRte<R, A>) => tug<R, A>;
 };
 
-/**
- * Constructs a new `tug` instance.
- */
-export const Tug: TugBuilder = new Proxy(newTug, {
-  get: (_target, prop, _receiver) => {
-    if (prop == "of" || prop == "right") {
-      return <T>(it: T) => newTug(() => it);
-    }
-    if (prop == "left") {
-      return <T>(it: T) =>
-        newTug(() => {
-          throw it;
-        });
-    }
-    throw new Error(
-      'Tug does not have a property named "' + String(prop) + '"'
-    );
-  },
-}) as any;
+export const tugBuilders = <R extends object>() => {
+  /**
+   * Constructs a new `tug` instance.
+   */
+  const Tug: TugBuilder<R> = new Proxy(newTug, {
+    get: (_target, prop, _receiver) => {
+      if (prop == "of" || prop == "right") {
+        return <T>(it: T) => newTug(() => it);
+      }
+      if (prop == "left") {
+        return <T>(it: T) =>
+          newTug(() => {
+            throw it;
+          });
+      }
+      if (prop === "fromRte") {
+        return <T>(it: TugRte<R, T>) => new tug((d: R) => it(d)());
+      }
+      throw new Error(
+        'Tug does not have a property named "' + String(prop) + '"'
+      );
+    },
+  }) as any;
+
+  return { Tug };
+};

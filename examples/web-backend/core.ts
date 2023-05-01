@@ -1,4 +1,4 @@
-import { CreateContext, tug } from "../../src/core";
+import { tugBuilders } from "../../src/core";
 
 // start database mock
 
@@ -25,5 +25,4 @@ type ContextInput = {
   currentUserId: () => Promise<string | undefined>;
 };
 
-export type WebTug<A> = tug<ContextInput, A>;
-export type WebCtx = CreateContext<ContextInput>;
+export const { Tug } = tugBuilders<ContextInput>();

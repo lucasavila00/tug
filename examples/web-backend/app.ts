@@ -1,13 +1,13 @@
-import { Tug } from "../../src/core";
+import { Tug } from "./core";
 import { getLoggedInUser } from "./auth";
-import { WebCtx } from "./core";
+
 import * as Order from "./order";
 
 const canCurrentUserEditOrder = (orderId: string) =>
   getLoggedInUser().chain((userId) => Order.canUserEditOrder(userId, orderId));
 
 export const deleteOrderHandler = (id: string) =>
-  Tug(async (ctx: WebCtx) => {
+  Tug(async (ctx) => {
     const canUserEditOrder = await ctx.use(canCurrentUserEditOrder(id));
 
     if (!canUserEditOrder) {

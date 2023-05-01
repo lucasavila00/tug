@@ -1,5 +1,8 @@
 import { expect, test } from "@jest/globals";
-import { Tug, tug } from "../src/core";
+import { tugBuilders } from "../src/core";
+
+type TestCtx = {};
+export const { Tug } = tugBuilders<TestCtx>();
 
 test("resolves", async () => {
   const v1 = await Tug(() => 1).exec({});
@@ -107,10 +110,11 @@ test("same ctx", async () => {
   type D = {
     count: number;
   };
-  const y: tug<D, number> = Tug((d) => d.count * 1);
-  const z: tug<D, number> = Tug(async (d) => d.count * 2);
+  const { Tug } = tugBuilders<D>();
+  const y = Tug((d) => d.count * 1);
+  const z = Tug(async (d) => d.count * 2);
 
-  const x: tug<D, number> = Tug(async (ctx) => {
+  const x = Tug(async (ctx) => {
     const a = await ctx.use(y);
     const b = await ctx.use(z);
     return a + b;
@@ -127,13 +131,18 @@ test("different ctx", async () => {
   type D1 = {
     count1: number;
   };
+  const { Tug: Tug1 } = tugBuilders<D1>();
   type D2 = {
     count2: number;
   };
-  const y = Tug((d: D1) => d.count1 * 1);
-  const z: tug<D2, number> = Tug(async (d) => d.count2 * 2);
+  const { Tug: Tug2 } = tugBuilders<D2>();
 
-  const x: tug<D1 & D2, number> = Tug(async (ctx) => {
+  const y = Tug1((d: D1) => d.count1 * 1);
+  const z = Tug2(async (d) => d.count2 * 2);
+
+  const { Tug: Tug3 } = tugBuilders<D1 & D2>();
+
+  const x = Tug3(async (ctx) => {
     const a = await ctx.use(y);
     const b = await ctx.use(z);
     return a + b;
@@ -175,3 +184,25 @@ test("chain", async () => {
     .exec({});
   expect(v1).toBe("1");
 });
+
+test("fromRte", async () => {
+  const rte = (_deps: {}) => async () => ({ _tag: "Right" as const, right: 1 });
+  const v1 = await Tug.fromRte(rte).exec({});
+  expect(v1).toBe(1);
+});
+
+// TODO: widening
+// import { Tug } from "./core";
+// import * as User from "./user";
+
+// const getLoggedInUserId = () =>
+//   Tug(async (ctx: { currentUserId: () => Promise<string | undefined> }) => {
+//     const userId = await ctx.currentUserId();
+//     if (userId == null) {
+//       throw new Error("User is not logged in");
+//     }
+//     return userId;
+//   });
+
+// export const getLoggedInUser = () =>
+//   getLoggedInUserId().chain(User.getUserById);

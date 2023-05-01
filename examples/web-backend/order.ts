@@ -1,8 +1,7 @@
-import { Tug } from "../../src/core";
-import { WebTug } from "./core";
+import { Tug } from "./core";
 import { OrderData, UserData } from "./dto";
 
-export const getOrdersByUserId = (userId: string): WebTug<OrderData[]> =>
+export const getOrdersByUserId = (userId: string) =>
   Tug(async (ctx) => {
     const db = await ctx.db();
     const orders = await db
@@ -11,14 +10,14 @@ export const getOrdersByUserId = (userId: string): WebTug<OrderData[]> =>
     return orders;
   });
 
-export const getAllOrders = (): WebTug<OrderData[]> =>
+export const getAllOrders = () =>
   Tug(async (ctx) => {
     const db = await ctx.db();
     const orders = await db.collection<OrderData>("orders").findMany();
     return orders;
   });
 
-export const getOrderById = (id: string): WebTug<OrderData> =>
+export const getOrderById = (id: string) =>
   Tug(async (ctx) => {
     const db = await ctx.db();
     const order = await db.collection<OrderData>("orders").findOne({ id });
@@ -28,7 +27,7 @@ export const getOrderById = (id: string): WebTug<OrderData> =>
     return order;
   });
 
-export const insertOrder = (order: OrderData): WebTug<OrderData> =>
+export const insertOrder = (order: OrderData) =>
   Tug(async (ctx) => {
     const db = await ctx.db();
     const insertedOrder = await db
@@ -37,7 +36,7 @@ export const insertOrder = (order: OrderData): WebTug<OrderData> =>
     return insertedOrder;
   });
 
-export const deleteOrder = (id: string): WebTug<OrderData> =>
+export const deleteOrder = (id: string) =>
   Tug(async (ctx) => {
     const db = await ctx.db();
     const deletedOrder = await db
@@ -46,10 +45,7 @@ export const deleteOrder = (id: string): WebTug<OrderData> =>
     return deletedOrder;
   });
 
-export const canUserEditOrder = (
-  user: UserData,
-  orderId: string
-): WebTug<boolean> =>
+export const canUserEditOrder = (user: UserData, orderId: string) =>
   Tug(async (ctx) => {
     if (user.isAdmin) {
       return true;
