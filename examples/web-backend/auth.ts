@@ -1,9 +1,12 @@
-import { Tug } from "./core";
+import { Tug } from "../../src/core";
+import { Dependencies } from "./core";
 import * as User from "./user";
 
+const AuthTug = Tug.depends(Dependencies.UserContext);
+
 const getLoggedInUserId = () =>
-  Tug(async (ctx) => {
-    const userId = await ctx.currentUserId();
+  AuthTug(async (ctx) => {
+    const userId = await ctx.read(Dependencies.UserContext).currentUserId();
     if (userId == null) {
       throw new Error("User is not logged in");
     }
@@ -11,4 +14,4 @@ const getLoggedInUserId = () =>
   });
 
 export const getLoggedInUser = () =>
-  getLoggedInUserId().chain(User.getUserById);
+  getLoggedInUserId().chain((it) => User.getUserById(it));

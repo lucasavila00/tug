@@ -1,4 +1,4 @@
-import { tugBuilders } from "../../src/core";
+import { Dependency } from "../../src/core";
 
 // start database mock
 
@@ -15,14 +15,17 @@ type Database = {
 
 // end database mock
 
-type ContextInput = {
-  db: () => Promise<Database>;
-  newDate: () => Date;
-  logger: {
+export namespace Dependencies {
+  export const Logger = Dependency<{
     log: (msg: string) => void;
     error: (msg: string) => void;
-  };
-  currentUserId: () => Promise<string | undefined>;
-};
+  }>();
 
-export const { Tug } = tugBuilders<ContextInput>();
+  export const Db = Dependency<{
+    db: () => Promise<Database>;
+  }>();
+
+  export const UserContext = Dependency<{
+    currentUserId: () => Promise<string | undefined>;
+  }>();
+}
