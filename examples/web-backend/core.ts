@@ -2,34 +2,37 @@ import { Dependency, Tug } from "../../src/core";
 
 // start database mock
 
-type Collection<T> = {
+type DatabaseClientCollection<T> = {
   insertOne: (it: T) => Promise<T>;
   deleteOne: (it: Partial<T>) => Promise<T>;
   findOne: (query: Partial<T>) => Promise<T | undefined>;
   findMany: (query?: Partial<T>) => Promise<T[]>;
 };
 
-type Database = {
-  collection: <T>(name: string) => Collection<T>;
+type DatabaseClient = {
+  collection: <T>(name: string) => DatabaseClientCollection<T>;
 };
 
 // end database mock
 
 export namespace Capacities {
-  export const Logger = Dependency<{
+  interface LoggerT {
     log: (msg: string) => void;
     error: (msg: string) => void;
-  }>();
+  }
+  export const Logger = Dependency<LoggerT>();
 
-  export const Db = Dependency<{
-    db: () => Promise<Database>;
-  }>();
+  interface DatabaseT {
+    db: () => Promise<DatabaseClient>;
+  }
+  export const Database = Dependency<DatabaseT>();
 
-  export const UserContext = Dependency<{
+  interface UserContextT {
     currentUserId: () => Promise<string | undefined>;
-  }>();
+  }
+  export const UserContext = Dependency<UserContextT>();
 }
 
-export const CapacitiesTug = Tug.depends(Capacities.UserContext)
-  .depends(Capacities.Db)
+export const AllCapacitiesTug = Tug.depends(Capacities.UserContext)
+  .depends(Capacities.Database)
   .depends(Capacities.Logger);

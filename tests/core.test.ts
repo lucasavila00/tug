@@ -356,13 +356,13 @@ test("flatMap", async () => {
   expect(v1).toBe("1");
 });
 
-// test("tug transform", async () => {
-//   const v0 = Tug.of(3);
-//   const v1 = await Tug(() => 1)
-//     .tug(async (it, ctx) => it + (await ctx.use(v0)))
-//     .exec();
-//   expect(v1).toBe(4);
-// });
+test("tug transform", async () => {
+  const v0 = Tug.of(3);
+  const v1 = await Tug(() => 1)
+    .tug(async (it, ctx) => it + (await ctx.use(v0)))
+    .exec();
+  expect(v1).toBe(4);
+});
 
 test("chain", async () => {
   const v1 = await Tug(() => 1)
@@ -371,15 +371,40 @@ test("chain", async () => {
   expect(v1).toBe("1");
 });
 
-// test("as rte", async () => {
-//   const v1 = await Tug(() => 1).rte({})();
-//   expect(v1).toMatchInlineSnapshot(`
-// {
-//   "_tag": "Right",
-//   "right": 1,
-// }
-// `);
-// });
+test("as rte", async () => {
+  const v1 = await Tug(() => 1).asRte({})();
+  expect(v1).toMatchInlineSnapshot(`
+{
+  "_tag": "Right",
+  "right": 1,
+}
+`);
+  type D1 = {
+    count1: number;
+  };
+  const D1Dep = Dependency<D1>();
+
+  type D2 = {
+    count2: number;
+  };
+  const D2Dep = Dependency<D2>();
+  const v2 = await Tug.depends(D1Dep)
+    .depends(D2Dep)((ctx) => ctx.read(D1Dep).count1 + ctx.read(D2Dep).count2)
+    .asRte({
+      [D1Dep.id]: {
+        count1: 1,
+      },
+      [D2Dep.id]: {
+        count2: 2,
+      },
+    })();
+  expect(v2).toMatchInlineSnapshot(`
+{
+  "_tag": "Right",
+  "right": 3,
+}
+`);
+});
 
 // test("fromRte", async () => {
 //   const rte = (_deps: {}) => async () => ({ _tag: "Right" as const, right: 1 });

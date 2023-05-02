@@ -1,4 +1,5 @@
 import { Dependency, tugReturns } from "../../../src/core";
 import { AuthModuleTug } from "./core";
 
-export const AuthModule = Dependency<tugReturns<typeof AuthModuleTug>>();
+interface AuthModuleT extends tugReturns<typeof AuthModuleTug> {}
+export const AuthModule = Dependency<AuthModuleT>();

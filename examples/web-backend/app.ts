@@ -21,9 +21,6 @@ export const deleteOrderHandler = (id: string) =>
     await ctx.read(OrderModule).deleteOrder(id);
   });
 
-export const app = AppTug(async (ctx) => {
-  const deleteOrder = ctx.useCallback(deleteOrderHandler);
-  return {
-    deleteOrder,
-  };
+export const app = Tug.callbacks({
+  deleteOrder: deleteOrderHandler,
 });
