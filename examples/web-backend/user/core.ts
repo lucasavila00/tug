@@ -28,8 +28,8 @@ const insertUser = (user: UserData) =>
     return insertedUser;
   });
 
-export const UserModuleTug = Tug.callbacks({
+export const UserModuleTug = {
   getUserById,
   getAllUsers,
   insertUser,
-});
+};

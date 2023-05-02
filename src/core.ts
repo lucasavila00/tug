@@ -151,7 +151,7 @@ export type tugReturns<T extends tug<any, any>> = T extends tug<any, infer A>
  * The `tug` instance.
  */
 export class tug<R extends EmptyObject, A> {
-  private rpe: TugRpe<R, A>;
+  private readonly rpe: TugRpe<R, A>;
   private constructor(rte: TugRpe<R, A>) {
     this.rpe = rte;
   }
@@ -218,10 +218,11 @@ export class tug<R extends EmptyObject, A> {
     );
   }
 
-  public flatten: A extends tug<any, infer A2> ? () => tug<R, A2> : never =
-    (() => {
-      return this.chain((it) => it as any);
-    }) as any;
+  public flatten: A extends tug<infer R2, infer A2>
+    ? () => tug<R | R2, A2>
+    : CompileError<["not nested tugs"]> = (() => {
+    return this.chain((it) => it as any);
+  }) as any;
 
   /**
    * Takes a function `f` that returns another `tug` instance.
@@ -306,17 +307,6 @@ interface TugBuilder<R0 extends EmptyObject> {
   ) => [Exclude<R, R0>] extends [never]
     ? CompileError<["dependency collides with others"]>
     : TugBuilder<R | R0>;
-
-  callbacks: <R extends Record<string, (...args: any[]) => tug<any, any>>>(
-    it: R
-  ) => tug<
-    R0 | tugReads<ReturnType<R[keyof R]>>,
-    {
-      [k in keyof R]: (
-        ...args: Parameters<R[k]>
-      ) => Promise<tugReturns<ReturnType<R[k]>>>;
-    }
-  >;
 }
 
 /**

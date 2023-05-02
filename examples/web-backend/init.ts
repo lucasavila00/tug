@@ -6,24 +6,22 @@ import { OrderModuleTug } from "./order/core";
 import { UserModuleTug } from "./user/core";
 import { UserModule } from "./user";
 import { AuthModuleTug } from "./auth/core";
-
-export const connectedApp = AllCapacitiesTug.flat(async (ctx) => {
-  const userModule = await ctx.use(UserModuleTug);
-  const authModule = await ctx.use(
-    AuthModuleTug.provide(UserModule, userModule)
-  );
-  const orderModule = await ctx.use(OrderModuleTug);
-  return app.provide(OrderModule, orderModule).provide(AuthModule, authModule);
-});
+import { callbacks } from "../../src/callbacks";
 
 export const start = async () => {
-  const handlers = await connectedApp
+  const connectedApp = callbacks(app)
+    .provide(OrderModule, OrderModuleTug)
+    .provide(UserModule, UserModuleTug)
+    .provide(AuthModule, AuthModuleTug)
     .provide(Capacities.Logger, null as any)
-    .provide(Capacities.Database, null as any)
+    .provide(Capacities.Database, null as any);
+
+  const handled = await connectedApp
+    .deleteOrder("123")
     .provide(Capacities.UserContext, null as any)
     .exec();
 
-  const deleteOrder = handlers.deleteOrder;
+  // const deleteOrder = handlers.deleteOrder;
 
-  console.log(deleteOrder);
+  console.log(handled);
 };

@@ -1,6 +1,7 @@
-import { Dependency, tugReturns } from "../../../src/core";
+import { Dependency } from "../../../src/core";
 import { OrderModuleTug } from "./core";
 
-interface OrderModuleT extends tugReturns<typeof OrderModuleTug> {}
+type OrderModuleTug = typeof OrderModuleTug;
+interface OrderModuleT extends OrderModuleTug {}
 
 export const OrderModule = Dependency<OrderModuleT>();

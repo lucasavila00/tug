@@ -1,13 +1,19 @@
-import { Tug } from "../../src/core";
+import { callbacks } from "../../src/callbacks";
 import { AuthModule } from "./auth";
+import { AllCapacitiesTug } from "./core";
 import { OrderModule } from "./order";
+import { UserModule } from "./user";
 
-const AppTug = Tug.depends(AuthModule).depends(OrderModule);
+const AppTug = AllCapacitiesTug.depends(AuthModule)
+  .depends(OrderModule)
+  .depends(UserModule);
 
 const canCurrentUserEditOrder = (orderId: string) =>
   AppTug(async (ctx) => {
-    const orderItem = await ctx.read(OrderModule).getOrderById(orderId);
-    const user = await ctx.read(AuthModule).getLoggedInUser();
+    const orderItem = await ctx.use(
+      ctx.read(OrderModule).getOrderById(orderId)
+    );
+    const user = await ctx.use(ctx.read(AuthModule).getLoggedInUser());
     return orderItem.userId === user.id;
   });
 
@@ -18,9 +24,9 @@ export const deleteOrderHandler = (id: string) =>
     if (!canUserEditOrder) {
       throw new Error("User is not owner");
     }
-    await ctx.read(OrderModule).deleteOrder(id);
+    await ctx.use(ctx.read(OrderModule).deleteOrder(id));
   });
 
-export const app = Tug.callbacks({
+export const app = {
   deleteOrder: deleteOrderHandler,
-});
+};

@@ -14,10 +14,10 @@ const getLoggedInUserId = () =>
   });
 
 const getLoggedInUser = () =>
-  getLoggedInUserId().tug((userId, ctx) =>
-    ctx.read(UserModule).getUserById(userId)
-  );
+  getLoggedInUserId()
+    .tug((userId, ctx) => ctx.read(UserModule).getUserById(userId))
+    .flatten();
 
-export const AuthModuleTug = Tug.callbacks({
+export const AuthModuleTug = {
   getLoggedInUser,
-});
+};

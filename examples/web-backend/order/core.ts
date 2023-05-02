@@ -48,10 +48,10 @@ const deleteOrder = (id: string) =>
     return deletedOrder;
   });
 
-export const OrderModuleTug = Tug.callbacks({
+export const OrderModuleTug = {
   getOrdersByUserId,
   getAllOrders,
   getOrderById,
   insertOrder,
   deleteOrder,
-});
+};
