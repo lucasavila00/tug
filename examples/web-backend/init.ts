@@ -1,6 +1,6 @@
 import { app } from "./app";
 import { AuthModule } from "./auth";
-import { Capacities, AllCapacitiesTug } from "./core";
+import { Capacities } from "./core";
 import { OrderModule } from "./order";
 import { OrderModuleTug } from "./order/core";
 import { UserModuleTug } from "./user/core";
