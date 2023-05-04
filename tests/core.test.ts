@@ -1,5 +1,5 @@
 import { expect, test } from "@jest/globals";
-import { Dependency, TugBuilder, tug } from "../src/core";
+import { Dependency, TugBuilder, Tug } from "../src/core";
 
 // eslint-disable-next-line @typescript-eslint/no-inferrable-types
 const FALSE: boolean = false;
@@ -18,7 +18,7 @@ test("resolves", async () => {
         count: number;
     };
     const DDep = Dependency<D>();
-    const tug31: tug<D, number> = TugBuilder.of(3);
+    const tug31: Tug<D, number> = TugBuilder.of(3);
     const v31 = await tug31.provide(DDep, { count: 1 }).exec();
     expect(v31).toBe(3);
 

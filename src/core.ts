@@ -84,9 +84,9 @@ export type CreateContext<R> = {
      */
     use: <R2, T>(
         it: [R2] extends [never]
-            ? tug<R2, T>
+            ? Tug<R2, T>
             : [R2] extends [R]
-            ? tug<R2, T>
+            ? Tug<R2, T>
             : CompileError<
                   [
                       "child-tug uses dependency that was not annotated in parent-tug"
@@ -129,18 +129,18 @@ const chainRpe =
             }
         });
 
-export type tugReads<T extends tug<any, any>> = T extends tug<infer R, any>
+export type tugReads<T extends Tug<any, any>> = T extends Tug<infer R, any>
     ? R
     : never;
 
-export type tugReturns<T extends tug<any, any>> = T extends tug<any, infer A>
+export type tugReturns<T extends Tug<any, any>> = T extends Tug<any, infer A>
     ? A
     : never;
 
 /**
  * The `tug` instance.
  */
-export class tug<R, A> {
+export class Tug<R, A> {
     private readonly rpe: TugRpe<R, A>;
     private constructor(rpe: TugRpe<R, A>) {
         this.rpe = rpe;
@@ -167,8 +167,8 @@ export class tug<R, A> {
     public provide<R2, O extends R2>(
         tag: Dependency<R2>,
         it: O
-    ): tug<Exclude<R, R2>, A> {
-        return new tug((deps) => this.rpe({ ...deps, [tag.id]: it }));
+    ): Tug<Exclude<R, R2>, A> {
+        return new Tug((deps) => this.rpe({ ...deps, [tag.id]: it }));
     }
 
     /**
@@ -183,7 +183,7 @@ export class tug<R, A> {
     /**
      * Takes a function `f` and applies it to the value of `this` `tug`.
      */
-    public map<B, R2 extends R>(f: (a: A) => B): tug<R2, B> {
+    public map<B, R2 extends R>(f: (a: A) => B): Tug<R2, B> {
         return this.tug(f);
     }
 
@@ -191,7 +191,7 @@ export class tug<R, A> {
         it: Dependency<R2>
     ) => [Exclude<R2, R>] extends [never]
         ? CompileError<["dependency collides with others"]>
-        : tug<R2 | R, A> = (_it) => {
+        : Tug<R2 | R, A> = (_it) => {
         return this as any;
     };
 
@@ -203,14 +203,14 @@ export class tug<R, A> {
      */
     public tug<B, R2 extends R>(
         f: (a: A, ctx: CreateContext<R2>) => B | Promise<B>
-    ): tug<R2, B> {
-        return new tug(
-            chainRpe(this.rpe, (a) => tug.TugRpe<R2, B>((ctx) => f(a, ctx)))
+    ): Tug<R2, B> {
+        return new Tug(
+            chainRpe(this.rpe, (a) => Tug.TugRpe<R2, B>((ctx) => f(a, ctx)))
         );
     }
 
-    public flatten: A extends tug<infer R2, infer A2>
-        ? () => tug<R | R2, A2>
+    public flatten: A extends Tug<infer R2, infer A2>
+        ? () => Tug<R | R2, A2>
         : CompileError<["not nested tugs"]> = (() => {
         return this.chain((it) => it as any);
     }) as any;
@@ -220,15 +220,15 @@ export class tug<R, A> {
      * If `this` `tug` failed, the returned `tug` will fail with the same error.
      * If `this` `tug` succeeded, the returned `tug` will be the result of `f` applied to the value of `this`.
      */
-    public flatMap<B, R2>(f: (a: A) => tug<R2, B>): tug<R2 | R, B> {
+    public flatMap<B, R2>(f: (a: A) => Tug<R2, B>): Tug<R2 | R, B> {
         return this.chain(f);
     }
 
     /**
      * Alias for `flatMap`.
      */
-    public chain<B, R2>(f: (a: A) => tug<R2, B>): tug<R2 | R, B> {
-        return new tug(chainRpe(this.rpe, (a) => f(a).rpe as any)) as any;
+    public chain<B, R2>(f: (a: A) => Tug<R2, B>): Tug<R2 | R, B> {
+        return new Tug(chainRpe(this.rpe, (a) => f(a).rpe as any)) as any;
     }
 
     private static TugRpe =
@@ -236,7 +236,7 @@ export class tug<R, A> {
         async (dependencies: R) => {
             const context = {
                 read: (tag: Dependency<any>) => (dependencies as any)[tag.id],
-                use: <T>(it: tug<any, T>): Promise<T> =>
+                use: <T>(it: Tug<any, T>): Promise<T> =>
                     it.rpe(dependencies).then(unwrapEither),
             };
 
@@ -252,8 +252,8 @@ export class tug<R, A> {
             }
         };
 
-    static newTug = <R, A>(cb: TugCallback<R, A>): tug<R, A> =>
-        new tug(tug.TugRpe(cb));
+    static newTug = <R, A>(cb: TugCallback<R, A>): Tug<R, A> =>
+        new Tug(Tug.TugRpe(cb));
 }
 
 export interface TugBuilder<R0> {
@@ -265,24 +265,24 @@ export interface TugBuilder<R0> {
      *
      * The callback is passed a context object, which contains the dependencies of the `tug`, and the `use` function.
      */
-    <A>(cb: TugCallback<R0, A>): tug<R0, A>;
+    <A>(cb: TugCallback<R0, A>): Tug<R0, A>;
 
     /**
      * Constructs a new `tug` instance, with the given value as the result.
      */
-    of: <A, R2 = never>(it: A) => tug<R2 | R0, A>;
+    of: <A, R2 = never>(it: A) => Tug<R2 | R0, A>;
 
     /**
      * Constructs a new `tug` instance, with the given value as the result.
      */
-    right: <A>(it: A) => tug<R0, A>;
+    right: <A>(it: A) => Tug<R0, A>;
 
     /**
      * Constructs a new `tug` instance, with the given value as the error.
      */
-    left: <A>(it: any) => tug<R0, A>;
+    left: <A>(it: any) => Tug<R0, A>;
 
-    flat: <R, A>(it: TugCallback<R0, tug<R, A>>) => tug<R | R0, A>;
+    flat: <R, A>(it: TugCallback<R0, Tug<R, A>>) => Tug<R | R0, A>;
 
     depends: <R>(
         it: Dependency<R>
@@ -294,14 +294,14 @@ export interface TugBuilder<R0> {
 /**
  * Constructs a new `tug` instance.
  */
-export const TugBuilder: TugBuilder<never> = new Proxy(tug.newTug, {
+export const TugBuilder: TugBuilder<never> = new Proxy(Tug.newTug, {
     get: (_target, prop, _receiver) => {
         if (prop == "of" || prop == "right") {
-            return <T>(it: T) => tug.newTug(() => it);
+            return <T>(it: T) => Tug.newTug(() => it);
         }
         if (prop == "left") {
             return <T>(it: T) =>
-                tug.newTug(() => {
+                Tug.newTug(() => {
                     throw it;
                 });
         }
