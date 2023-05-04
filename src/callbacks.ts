@@ -1,10 +1,9 @@
 import { Dependency, tug, tugReads, tugReturns } from "./core";
-type EmptyObject = {};
 
 type CallbackProvider<
     RS extends Record<string, (...args: any) => tug<any, any>>
 > = RS & {
-    provide: <PROVIDING extends EmptyObject, PROVIDED_OBJECT extends PROVIDING>(
+    provide: <PROVIDING, PROVIDED_OBJECT extends PROVIDING>(
         tag: Dependency<PROVIDING>,
         it: PROVIDED_OBJECT
     ) => CallbackProvider<{

@@ -1,6 +1,9 @@
 import { expect, test } from "@jest/globals";
 import { Dependency, TugBuilder, tug } from "../src/core";
 
+// eslint-disable-next-line @typescript-eslint/no-inferrable-types
+const FALSE: boolean = false;
+
 test("resolves", async () => {
     const v1 = await TugBuilder(() => 1).exec();
     expect(v1).toBe(1);
@@ -60,6 +63,7 @@ test("exec", async () => {
         }).exec();
         expect(1).toBe(2);
     } catch (e) {
+        // eslint-disable-next-line jest/no-conditional-expect
         expect(e).toMatchInlineSnapshot(`[Error: ...]`);
     }
 
@@ -123,8 +127,9 @@ test("same ctx", async () => {
         return a + b;
     });
 
-    if (1 < 0) {
+    if (FALSE) {
         //@ts-expect-error
+
         x.exec();
     }
 
@@ -151,6 +156,7 @@ test("missing ctx", async () => {
         //@ts-expect-error
         await ctx.use(z);
     });
+    expect(1).toBe(1);
 });
 
 test("different ctx, same tug", async () => {
@@ -199,6 +205,7 @@ test("different ctx, same tug err", async () => {
         const b = ctx.read(D2Dep).count2;
         return a + b;
     });
+    expect(1).toBe(1);
 });
 
 test("different ctx", async () => {
@@ -325,6 +332,7 @@ test("collision err", async () => {
         const b = await ctx.use(z);
         return a + b;
     });
+    expect(1).toBe(1);
 });
 
 test("different ctx + provide", async () => {
@@ -403,25 +411,3 @@ test("as rte", async () => {
 }
 `);
 });
-
-// test("fromRte", async () => {
-//   const rte = (_deps: {}) => async () => ({ _tag: "Right" as const, right: 1 });
-//   const v1 = await Tug.fromRte(rte).exec();
-//   expect(v1).toBe(1);
-// });
-
-// TODO: widening
-// import { Tug } from "./core";
-// import * as User from "./user";
-
-// const getLoggedInUserId = () =>
-//   Tug(async (ctx: { currentUserId: () => Promise<string | undefined> }) => {
-//     const userId = await ctx.currentUserId();
-//     if (userId == null) {
-//       throw new Error("User is not logged in");
-//     }
-//     return userId;
-//   });
-
-// export const getLoggedInUser = () =>
-//   getLoggedInUserId().chain(User.getUserById);
