@@ -1,18 +1,28 @@
 {
-  "name": "tug",
+  "name": "tug-ts",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "lib/index.js",
+  "module": "es6/index.js",
+  "typings": "lib/index.d.ts",
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "ts": "tsc --noEmit",
+    "build": "rm -rf dist && tsc -p ./tsconfig.build.json && tsc -p ./tsconfig.build-es6.json && ts-node scripts/build",
+    "prepublishOnly": "ts-node scripts/pre-publish",
+    "release": "ts-node scripts/release"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "Lucas Ávila",
+  "license": "MIT",
   "devDependencies": {
     "@jest/globals": "^29.5.0",
+    "@types/glob": "^7.2.0",
+    "fp-ts": "^2.14.0",
+    "glob": "^8.1.0",
     "jest": "^29.5.0",
     "ts-jest": "^29.1.0",
+    "ts-node": "^10.9.1",
     "typescript": "^5.0.4"
   }
 }

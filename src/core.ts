@@ -152,15 +152,16 @@ export type tugReturns<T extends tug<any, any>> = T extends tug<any, infer A>
  */
 export class tug<R extends EmptyObject, A> {
   private readonly rpe: TugRpe<R, A>;
-  private constructor(rte: TugRpe<R, A>) {
-    this.rpe = rte;
+  private constructor(rpe: TugRpe<R, A>) {
+    this.rpe = rpe;
   }
 
   /**
    * Creates a ReaderTaskEither from a `tug` instance.
    */
-  get rte(): TugRte<R, A> {
-    return (dependencies: R) => async () => this.rpe(dependencies);
+  public asRte(dependencyTag: Dependency<any>): TugRte<R, A> {
+    return (dependencies: R) => async () =>
+      this.rpe({ [dependencyTag.id]: dependencies } as any);
   }
 
   /**
@@ -244,10 +245,6 @@ export class tug<R extends EmptyObject, A> {
     return new tug(chainRpe(this.rpe, (a) => f(a).rpe as any)) as any;
   }
 
-  public get asRte(): TugRte<any, A> {
-    return (deps: any) => async () => this.rpe(deps);
-  }
-
   private static TugRpe =
     <R extends EmptyObject, A>(cb: TugCallback<R, A>): TugRpe<R, A> =>
     async (dependencies: R) => {
@@ -286,7 +283,7 @@ interface TugBuilder<R0 extends EmptyObject> {
   /**
    * Constructs a new `tug` instance, with the given value as the result.
    */
-  of: <A>(it: A) => tug<R0, A>;
+  of: <R2 extends EmptyObject, A>(it: A) => tug<R2 | R0, A>;
 
   /**
    * Constructs a new `tug` instance, with the given value as the result.
@@ -313,7 +310,7 @@ interface TugBuilder<R0 extends EmptyObject> {
  * Constructs a new `tug` instance.
  */
 export const Tug: TugBuilder<never> = new Proxy(tug.newTug, {
-  get: (target, prop, _receiver) => {
+  get: (_target, prop, _receiver) => {
     if (prop == "of" || prop == "right") {
       return <T>(it: T) => tug.newTug(() => it);
     }
