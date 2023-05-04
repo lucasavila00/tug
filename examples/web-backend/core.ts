@@ -15,6 +15,7 @@ type DatabaseClient = {
 
 // end database mock
 
+// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Capacities {
     export interface LoggerT {
         log: (msg: string) => void;

@@ -23,5 +23,6 @@ export const start = async () => {
 
     // const deleteOrder = handlers.deleteOrder;
 
+    // eslint-disable-next-line no-console
     console.log(handled);
 };
