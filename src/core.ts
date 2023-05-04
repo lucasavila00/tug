@@ -37,21 +37,11 @@ export interface Right<A> {
 export type Either<E, A> = Left<E> | Right<A>;
 
 /**
- * Task type, or lazy promise. Represents a parameter-less function that returns a promise.
- */
-export type Task<A> = () => Promise<A>;
-
-/**
  * Reader type. Represents a function that takes a parameter and returns a value.
  */
 export type Reader<R, A> = (r: R) => A;
 
 type TugError = unknown;
-
-/**
- * A reader function that reads R, and returns a task that returns Either<unknown, A>.
- */
-export type TugRte<R, A> = Reader<R, Task<Either<TugError, A>>>;
 
 /**
  * A reader function that reads R, and returns a Promise of Either<unknown, A>.
