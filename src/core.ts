@@ -220,7 +220,7 @@ export class Tug<R extends [any, any], A> {
         <R extends [any, any], A>(cb: TugCallback<R, A>): TugRpe<R, A> =>
         async (dependencies: R) => {
             const context = {
-                read: (tag: Dependency<any>) => (dependencies as any)[tag.name],
+                ...dependencies,
                 use: <T>(it: Tug<any, T>): Promise<T> =>
                     it.rpe(dependencies).then(unwrapEither),
             };
