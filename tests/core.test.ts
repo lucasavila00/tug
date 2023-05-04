@@ -1,5 +1,5 @@
 import { expect, test } from "@jest/globals";
-import { CreateContext, Dependency, Tug } from "../src/core";
+import { Dependency, Tug, tug } from "../src/core";
 
 test("resolves", async () => {
   const v1 = await Tug(() => 1).exec();
@@ -10,6 +10,14 @@ test("resolves", async () => {
 
   const v3 = await Tug.of(3).exec();
   expect(v3).toBe(3);
+
+  type D = {
+    count: number;
+  };
+  const DDep = Dependency<D>();
+  const tug31: tug<D, number> = Tug.of(3);
+  const v31 = await tug31.provide(DDep, { count: 1 }).exec();
+  expect(v31).toBe(3);
 
   const v4 = await Tug.right(4).exec();
   expect(v4).toBe(4);
@@ -372,36 +380,15 @@ test("chain", async () => {
 });
 
 test("as rte", async () => {
-  const v1 = await Tug(() => 1).asRte({})();
-  expect(v1).toMatchInlineSnapshot(`
-{
-  "_tag": "Right",
-  "right": 1,
-}
-`);
   type D1 = {
     count1: number;
   };
   const D1Dep = Dependency<D1>();
-
-  type D2 = {
-    count2: number;
-  };
-  const D2Dep = Dependency<D2>();
-  const v2 = await Tug.depends(D1Dep)
-    .depends(D2Dep)((ctx) => ctx.read(D1Dep).count1 + ctx.read(D2Dep).count2)
-    .asRte({
-      [D1Dep.id]: {
-        count1: 1,
-      },
-      [D2Dep.id]: {
-        count2: 2,
-      },
-    })();
-  expect(v2).toMatchInlineSnapshot(`
+  const v1 = await Tug.depends(D1Dep)(() => 1).asRte(D1Dep)({ count1: 1 })();
+  expect(v1).toMatchInlineSnapshot(`
 {
   "_tag": "Right",
-  "right": 3,
+  "right": 1,
 }
 `);
 });

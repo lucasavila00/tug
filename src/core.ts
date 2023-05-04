@@ -1,5 +1,3 @@
-type EmptyObject = {};
-
 interface CompileError<_ErrorMessageT extends any[]> {
   /**
    * There should never be a value of this type
@@ -53,19 +51,13 @@ type TugError = unknown;
 /**
  * A reader function that reads R, and returns a task that returns Either<unknown, A>.
  */
-export type TugRte<R extends EmptyObject, A> = Reader<
-  R,
-  Task<Either<TugError, A>>
->;
+export type TugRte<R, A> = Reader<R, Task<Either<TugError, A>>>;
 
 /**
  * A reader function that reads R, and returns a Promise of Either<unknown, A>.
  * This is the core type of this library.
  */
-export type TugRpe<R extends EmptyObject, A> = Reader<
-  R,
-  Promise<Either<TugError, A>>
->;
+export type TugRpe<R, A> = Reader<R, Promise<Either<TugError, A>>>;
 
 export type Dependency<R> = {
   read: (it: any) => R;
@@ -83,13 +75,13 @@ export const Dependency = <R>(): Dependency<R> => {
 /**
  * Adds the `use` function to the context.
  */
-export type CreateContext<R extends EmptyObject> = {
+export type CreateContext<R> = {
   /**
    * Transforms a `tug` into a plain promise.
    * Returns a successful promise if the `tug` succeeds,
    * or a rejected promise if the `tug` fails.
    */
-  use: <R2 extends EmptyObject, T>(
+  use: <R2, T>(
     it: [R2] extends [never]
       ? tug<R2, T>
       : [R2] extends [R]
@@ -113,9 +105,7 @@ export type CreateContext<R extends EmptyObject> = {
  * If the callback throws an error or returns a rejected promise, the `tug` value will be an error.
  * If the callback returns a value or promise of a value, the `tug` value will be of that value.
  */
-export type TugCallback<R extends EmptyObject, A> = (
-  ctx: CreateContext<R>
-) => Promise<A> | A;
+export type TugCallback<R, A> = (ctx: CreateContext<R>) => Promise<A> | A;
 
 const unwrapEither = <E, A>(e: Either<E, A>): A => {
   if (e._tag === "Right") {
@@ -126,10 +116,7 @@ const unwrapEither = <E, A>(e: Either<E, A>): A => {
 };
 
 const chainRpe =
-  <R extends EmptyObject, A, B>(
-    rte: TugRpe<R, A>,
-    f: (a: A) => TugRpe<R, B>
-  ): TugRpe<R, B> =>
+  <R, A, B>(rte: TugRpe<R, A>, f: (a: A) => TugRpe<R, B>): TugRpe<R, B> =>
   async (deps: R) =>
     rte(deps).then((e) => {
       if (e._tag === "Right") {
@@ -150,7 +137,7 @@ export type tugReturns<T extends tug<any, any>> = T extends tug<any, infer A>
 /**
  * The `tug` instance.
  */
-export class tug<R extends EmptyObject, A> {
+export class tug<R, A> {
   private readonly rpe: TugRpe<R, A>;
   private constructor(rpe: TugRpe<R, A>) {
     this.rpe = rpe;
@@ -174,7 +161,7 @@ export class tug<R extends EmptyObject, A> {
     return this.execEither().then(unwrapEither);
   }) as any;
 
-  public provide<R2 extends EmptyObject, O extends R2>(
+  public provide<R2, O extends R2>(
     tag: Dependency<R2>,
     it: O
   ): tug<Exclude<R, R2>, A> {
@@ -197,7 +184,7 @@ export class tug<R extends EmptyObject, A> {
     return this.tug(f);
   }
 
-  public depends: <R2 extends EmptyObject>(
+  public depends: <R2>(
     it: Dependency<R2>
   ) => [Exclude<R2, R>] extends [never]
     ? CompileError<["dependency collides with others"]>
@@ -230,23 +217,19 @@ export class tug<R extends EmptyObject, A> {
    * If `this` `tug` failed, the returned `tug` will fail with the same error.
    * If `this` `tug` succeeded, the returned `tug` will be the result of `f` applied to the value of `this`.
    */
-  public flatMap<B, R2 extends EmptyObject>(
-    f: (a: A) => tug<R2, B>
-  ): tug<R2 | R, B> {
+  public flatMap<B, R2>(f: (a: A) => tug<R2, B>): tug<R2 | R, B> {
     return this.chain(f);
   }
 
   /**
    * Alias for `flatMap`.
    */
-  public chain<B, R2 extends EmptyObject>(
-    f: (a: A) => tug<R2, B>
-  ): tug<R2 | R, B> {
+  public chain<B, R2>(f: (a: A) => tug<R2, B>): tug<R2 | R, B> {
     return new tug(chainRpe(this.rpe, (a) => f(a).rpe as any)) as any;
   }
 
   private static TugRpe =
-    <R extends EmptyObject, A>(cb: TugCallback<R, A>): TugRpe<R, A> =>
+    <R, A>(cb: TugCallback<R, A>): TugRpe<R, A> =>
     async (dependencies: R) => {
       const context = {
         read: (tag: Dependency<any>) => (dependencies as any)[tag.id],
@@ -264,12 +247,11 @@ export class tug<R extends EmptyObject, A> {
       }
     };
 
-  static newTug = <R extends EmptyObject, A>(
-    cb: TugCallback<R, A>
-  ): tug<R, A> => new tug(tug.TugRpe(cb));
+  static newTug = <R, A>(cb: TugCallback<R, A>): tug<R, A> =>
+    new tug(tug.TugRpe(cb));
 }
 
-interface TugBuilder<R0 extends EmptyObject> {
+interface TugBuilder<R0> {
   /**
    * Constructs a new `tug` instance. The callback is executed when the `tug` is executed.
    *
@@ -283,7 +265,7 @@ interface TugBuilder<R0 extends EmptyObject> {
   /**
    * Constructs a new `tug` instance, with the given value as the result.
    */
-  of: <R2 extends EmptyObject, A>(it: A) => tug<R2 | R0, A>;
+  of: <A, R2 = never>(it: A) => tug<R2 | R0, A>;
 
   /**
    * Constructs a new `tug` instance, with the given value as the result.
@@ -295,11 +277,9 @@ interface TugBuilder<R0 extends EmptyObject> {
    */
   left: <A>(it: any) => tug<R0, A>;
 
-  flat: <R extends EmptyObject, A>(
-    it: TugCallback<R0, tug<R, A>>
-  ) => tug<R | R0, A>;
+  flat: <R, A>(it: TugCallback<R0, tug<R, A>>) => tug<R | R0, A>;
 
-  depends: <R extends EmptyObject>(
+  depends: <R>(
     it: Dependency<R>
   ) => [Exclude<R, R0>] extends [never]
     ? CompileError<["dependency collides with others"]>
