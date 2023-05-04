@@ -5,4 +5,6 @@ export type OrderModuleTug = typeof OrderModuleTug;
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface OrderModuleT extends OrderModuleTug {}
 
-export const OrderModule = Dependency<OrderModuleT>();
+export const OrderModule = Dependency<OrderModuleT, "OrderModule">(
+    "OrderModule"
+);

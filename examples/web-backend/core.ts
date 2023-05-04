@@ -21,17 +21,19 @@ export namespace Capacities {
         log: (msg: string) => void;
         error: (msg: string) => void;
     }
-    export const Logger = Dependency<LoggerT>();
+    export const Logger = Dependency<LoggerT, "Logger">("Logger");
 
     export interface DatabaseT {
         db: () => Promise<DatabaseClient>;
     }
-    export const Database = Dependency<DatabaseT>();
+    export const Database = Dependency<DatabaseT, "Database">("Database");
 
     export interface UserContextT {
         currentUserId: () => Promise<string | undefined>;
     }
-    export const UserContext = Dependency<UserContextT>();
+    export const UserContext = Dependency<UserContextT, "UserContext">(
+        "UserContext"
+    );
 }
 
 export const AllCapacitiesTug = TugBuilder.depends(Capacities.UserContext)

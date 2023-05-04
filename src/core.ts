@@ -49,24 +49,27 @@ type TugError = unknown;
  */
 export type TugRpe<R, A> = Reader<R, Promise<Either<TugError, A>>>;
 
-export type Dependency<R> = {
-    read: R;
-    id: number;
+export type Dependency<R extends [any, any]> = {
+    read: R[1];
+    name: R[0];
 };
-let idCounter = 0;
-export const Dependency = <R>(): Dependency<R> => {
-    idCounter++;
+export const Dependency = <R, N extends string>(
+    name: N
+): Dependency<[N, R]> => {
     return {
-        /* istanbul ignore next */
         read: null as any,
-        id: idCounter,
+        name: name,
     };
 };
-
+type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
+    k: infer I
+) => void
+    ? I
+    : never;
 /**
  * Adds the `use` function to the context.
  */
-export type CreateContext<R> = {
+export type CreateContext<R extends [any, any]> = {
     /**
      * Transforms a `tug` into a plain promise.
      * Returns a successful promise if the `tug` succeeds,
@@ -83,13 +86,7 @@ export type CreateContext<R> = {
                   ]
               >
     ) => Promise<T>;
-
-    read: <R2>(
-        dependency: Dependency<R2>
-    ) => [R2] extends [R]
-        ? R2
-        : CompileError<["used dependency was not annotated as dependency"]>;
-};
+} & UnionToIntersection<R extends [any, any] ? { [key in R[0]]: R[1] } : never>;
 
 /**
  * A callback that takes a context and returns a value or promise of a value.
@@ -98,7 +95,9 @@ export type CreateContext<R> = {
  * If the callback throws an error or returns a rejected promise, the `tug` value will be an error.
  * If the callback returns a value or promise of a value, the `tug` value will be of that value.
  */
-export type TugCallback<R, A> = (ctx: CreateContext<R>) => Promise<A> | A;
+export type TugCallback<R extends [any, any], A> = (
+    ctx: CreateContext<R>
+) => Promise<A> | A;
 
 const unwrapEither = <E, A>(e: Either<E, A>): A => {
     if (e._tag === "Right") {
@@ -130,7 +129,7 @@ export type tugReturns<T extends Tug<any, any>> = T extends Tug<any, infer A>
 /**
  * The `tug` instance.
  */
-export class Tug<R, A> {
+export class Tug<R extends [any, any], A> {
     private readonly rpe: TugRpe<R, A>;
     private constructor(rpe: TugRpe<R, A>) {
         this.rpe = rpe;
@@ -146,11 +145,11 @@ export class Tug<R, A> {
         return this.execEither().then(unwrapEither);
     }) as any;
 
-    public provide<R2, O extends R2>(
+    public provide<R2 extends [any, any], O extends R2[1]>(
         tag: Dependency<R2>,
         it: O
     ): Tug<Exclude<R, R2>, A> {
-        return new Tug((deps) => this.rpe({ ...deps, [tag.id]: it }));
+        return new Tug((deps) => this.rpe({ ...deps, [tag.name]: it }));
     }
 
     /**
@@ -169,7 +168,7 @@ export class Tug<R, A> {
         return this.thenn(f);
     }
 
-    public depends: <R2>(
+    public depends: <R2 extends [any, any]>(
         it: Dependency<R2>
     ) => [Exclude<R2, R>] extends [never]
         ? CompileError<["dependency collides with others"]>
@@ -202,22 +201,26 @@ export class Tug<R, A> {
      * If `this` `tug` failed, the returned `tug` will fail with the same error.
      * If `this` `tug` succeeded, the returned `tug` will be the result of `f` applied to the value of `this`.
      */
-    public flatMap<B, R2>(f: (a: A) => Tug<R2, B>): Tug<R2 | R, B> {
+    public flatMap<B, R2 extends [any, any]>(
+        f: (a: A) => Tug<R2, B>
+    ): Tug<R2 | R, B> {
         return this.chain(f);
     }
 
     /**
      * Alias for `flatMap`.
      */
-    public chain<B, R2>(f: (a: A) => Tug<R2, B>): Tug<R2 | R, B> {
+    public chain<B, R2 extends [any, any]>(
+        f: (a: A) => Tug<R2, B>
+    ): Tug<R2 | R, B> {
         return new Tug(chainRpe(this.rpe, (a) => f(a).rpe as any)) as any;
     }
 
     private static TugRpe =
-        <R, A>(cb: TugCallback<R, A>): TugRpe<R, A> =>
+        <R extends [any, any], A>(cb: TugCallback<R, A>): TugRpe<R, A> =>
         async (dependencies: R) => {
             const context = {
-                read: (tag: Dependency<any>) => (dependencies as any)[tag.id],
+                read: (tag: Dependency<any>) => (dependencies as any)[tag.name],
                 use: <T>(it: Tug<any, T>): Promise<T> =>
                     it.rpe(dependencies).then(unwrapEither),
             };
@@ -234,11 +237,12 @@ export class Tug<R, A> {
             }
         };
 
-    static newTug = <R, A>(cb: TugCallback<R, A>): Tug<R, A> =>
-        new Tug(Tug.TugRpe(cb));
+    static newTug = <R extends [any, any], A>(
+        cb: TugCallback<R, A>
+    ): Tug<R, A> => new Tug(Tug.TugRpe(cb));
 }
 
-export interface TugBuilder<R0> {
+export interface TugBuilder<R0 extends [any, any]> {
     /**
      * Constructs a new `tug` instance. The callback is executed when the `tug` is executed.
      *
@@ -252,7 +256,7 @@ export interface TugBuilder<R0> {
     /**
      * Constructs a new `tug` instance, with the given value as the result.
      */
-    of: <A, R2 = never>(it: A) => Tug<R2 | R0, A>;
+    of: <A, R2 extends [any, any] = never>(it: A) => Tug<R2 | R0, A>;
 
     /**
      * Constructs a new `tug` instance, with the given value as the result.
@@ -264,9 +268,11 @@ export interface TugBuilder<R0> {
      */
     left: <A>(it: any) => Tug<R0, A>;
 
-    flat: <R, A>(it: TugCallback<R0, Tug<R, A>>) => Tug<R | R0, A>;
+    flat: <R extends [any, any], A>(
+        it: TugCallback<R0, Tug<R, A>>
+    ) => Tug<R | R0, A>;
 
-    depends: <R>(
+    depends: <R extends [any, any]>(
         it: Dependency<R>
     ) => [Exclude<R, R0>] extends [never]
         ? CompileError<["dependency collides with others"]>
