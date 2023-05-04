@@ -408,7 +408,7 @@ test("flatMap", async () => {
 test("tug transform", async () => {
     const v0 = TugBuilder.of(3);
     const v1 = await TugBuilder(() => 1)
-        .tug(async (it, ctx) => it + (await ctx.use(v0)))
+        .thenn(async (it, ctx) => it + (await ctx.use(v0)))
         .exec();
     expect(v1).toBe(4);
 });
@@ -438,20 +438,4 @@ test("flatten", async () => {
         .flatten()
         .exec();
     expect(v1).toBe("1");
-});
-
-test("as rte", async () => {
-    type D1 = {
-        count1: number;
-    };
-    const D1Dep = Dependency<D1>();
-    const v1 = await TugBuilder.depends(D1Dep)(() => 1).asRte(D1Dep)({
-        count1: 1,
-    })();
-    expect(v1).toMatchInlineSnapshot(`
-        {
-          "_tag": "Right",
-          "right": 1,
-        }
-    `);
 });

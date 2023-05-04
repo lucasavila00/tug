@@ -147,14 +147,6 @@ export class Tug<R, A> {
     }
 
     /**
-     * Creates a ReaderTaskEither from a `tug` instance.
-     */
-    public asRte(dependencyTag: Dependency<any>): TugRte<R, A> {
-        return (dependencies: R) => async () =>
-            this.rpe({ [dependencyTag.id]: dependencies } as any);
-    }
-
-    /**
      * Executes the `tug` instance and returns a promise of the result.
      * If the `tug` fails, the promise will be rejected.
      */
@@ -184,7 +176,7 @@ export class Tug<R, A> {
      * Takes a function `f` and applies it to the value of `this` `tug`.
      */
     public map<B, R2 extends R>(f: (a: A) => B): Tug<R2, B> {
-        return this.tug(f);
+        return this.thenn(f);
     }
 
     public depends: <R2>(
@@ -201,7 +193,7 @@ export class Tug<R, A> {
      * If `this` `tug` failed, the returned `tug` will fail with the same error.
      * If `f` throws an error or returns a rejected promise, the returned `tug` will fail with that error.
      */
-    public tug<B, R2 extends R>(
+    public thenn<B, R2 extends R>(
         f: (a: A, ctx: CreateContext<R2>) => B | Promise<B>
     ): Tug<R2, B> {
         return new Tug(
