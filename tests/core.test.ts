@@ -1,51 +1,51 @@
 import { expect, test } from "@jest/globals";
-import { Dependency, Tug, tug } from "../src/core";
+import { Dependency, TugBuilder, tug } from "../src/core";
 
 test("resolves", async () => {
-  const v1 = await Tug(() => 1).exec();
-  expect(v1).toBe(1);
+    const v1 = await TugBuilder(() => 1).exec();
+    expect(v1).toBe(1);
 
-  const v2 = await Tug(async () => 2).exec();
-  expect(v2).toBe(2);
+    const v2 = await TugBuilder(async () => 2).exec();
+    expect(v2).toBe(2);
 
-  const v3 = await Tug.of(3).exec();
-  expect(v3).toBe(3);
+    const v3 = await TugBuilder.of(3).exec();
+    expect(v3).toBe(3);
 
-  type D = {
-    count: number;
-  };
-  const DDep = Dependency<D>();
-  const tug31: tug<D, number> = Tug.of(3);
-  const v31 = await tug31.provide(DDep, { count: 1 }).exec();
-  expect(v31).toBe(3);
+    type D = {
+        count: number;
+    };
+    const DDep = Dependency<D>();
+    const tug31: tug<D, number> = TugBuilder.of(3);
+    const v31 = await tug31.provide(DDep, { count: 1 }).exec();
+    expect(v31).toBe(3);
 
-  const v4 = await Tug.right(4).exec();
-  expect(v4).toBe(4);
+    const v4 = await TugBuilder.right(4).exec();
+    expect(v4).toBe(4);
 });
 
 test("catches", async () => {
-  const v1 = await Tug(() => {
-    throw new Error("...");
-  }).execEither();
-  expect(v1).toMatchInlineSnapshot(`
+    const v1 = await TugBuilder(() => {
+        throw new Error("...");
+    }).execEither();
+    expect(v1).toMatchInlineSnapshot(`
 {
   "_tag": "Left",
   "left": [Error: ...],
 }
 `);
 
-  const v2 = await Tug(() => {
-    return Promise.reject(new Error("..."));
-  }).execEither();
-  expect(v2).toMatchInlineSnapshot(`
+    const v2 = await TugBuilder(() => {
+        return Promise.reject(new Error("..."));
+    }).execEither();
+    expect(v2).toMatchInlineSnapshot(`
 {
   "_tag": "Left",
   "left": [Error: ...],
 }
 `);
 
-  const v3 = await Tug.left(new Error("...")).execEither();
-  expect(v3).toMatchInlineSnapshot(`
+    const v3 = await TugBuilder.left(new Error("...")).execEither();
+    expect(v3).toMatchInlineSnapshot(`
 {
   "_tag": "Left",
   "left": [Error: ...],
@@ -54,33 +54,33 @@ test("catches", async () => {
 });
 
 test("exec", async () => {
-  try {
-    await Tug(() => {
-      throw new Error("...");
-    }).exec();
-    expect(1).toBe(2);
-  } catch (e) {
-    expect(e).toMatchInlineSnapshot(`[Error: ...]`);
-  }
+    try {
+        await TugBuilder(() => {
+            throw new Error("...");
+        }).exec();
+        expect(1).toBe(2);
+    } catch (e) {
+        expect(e).toMatchInlineSnapshot(`[Error: ...]`);
+    }
 
-  const v2 = await Tug(async () => 2).exec();
-  expect(v2).toBe(2);
+    const v2 = await TugBuilder(async () => 2).exec();
+    expect(v2).toBe(2);
 });
 
 test("execEither", async () => {
-  const v1 = await Tug(() => {
-    throw new Error("...");
-  }).execEither();
+    const v1 = await TugBuilder(() => {
+        throw new Error("...");
+    }).execEither();
 
-  expect(v1).toMatchInlineSnapshot(`
+    expect(v1).toMatchInlineSnapshot(`
 {
   "_tag": "Left",
   "left": [Error: ...],
 }
 `);
 
-  const v2 = await Tug(async () => 2).execEither();
-  expect(v2).toMatchInlineSnapshot(`
+    const v2 = await TugBuilder(async () => 2).execEither();
+    expect(v2).toMatchInlineSnapshot(`
 {
   "_tag": "Right",
   "right": 2,
@@ -89,303 +89,314 @@ test("execEither", async () => {
 });
 
 test("use", async () => {
-  type D = {
-    count: number;
-  };
-  const DDep = Dependency<D>();
-  const y = Tug(() => 1);
-  const z = Tug(() => 2);
+    type D = {
+        count: number;
+    };
+    const DDep = Dependency<D>();
+    const y = TugBuilder(() => 1);
+    const z = TugBuilder(() => 2);
 
-  const x = Tug.depends(DDep)(async (ctx) => {
-    const a = await ctx.use(y);
-    const b = await ctx.use(z);
-    return a + b + ctx.read(DDep).count;
-  }).provide(DDep, { count: 1 });
+    const x = TugBuilder.depends(DDep)(async (ctx) => {
+        const a = await ctx.use(y);
+        const b = await ctx.use(z);
+        return a + b + ctx.read(DDep).count;
+    }).provide(DDep, { count: 1 });
 
-  expect(await x.exec()).toBe(4);
+    expect(await x.exec()).toBe(4);
 });
 
 test("same ctx", async () => {
-  type D = {
-    count: number;
-  };
-  const DDep = Dependency<D>();
+    type D = {
+        count: number;
+    };
+    const DDep = Dependency<D>();
 
-  const DTug = Tug.depends(DDep);
+    const DTug = TugBuilder.depends(DDep);
 
-  const y = DTug((ctx) => ctx.read(DDep).count * 1);
+    const y = DTug((ctx) => ctx.read(DDep).count * 1);
 
-  const z = DTug(async (ctx) => ctx.read(DDep).count * 2);
+    const z = DTug(async (ctx) => ctx.read(DDep).count * 2);
 
-  const x = DTug(async (ctx) => {
-    const a = await ctx.use(y);
-    const b = await ctx.use(z);
-    return a + b;
-  });
+    const x = DTug(async (ctx) => {
+        const a = await ctx.use(y);
+        const b = await ctx.use(z);
+        return a + b;
+    });
 
-  if (1 < 0) {
-    //@ts-expect-error
-    x.exec();
-  }
+    if (1 < 0) {
+        //@ts-expect-error
+        x.exec();
+    }
 
-  expect(
-    await x
-      .provide(DDep, {
-        count: 1,
-      })
-      .exec()
-  ).toBe(3);
+    expect(
+        await x
+            .provide(DDep, {
+                count: 1,
+            })
+            .exec()
+    ).toBe(3);
 });
 
 test("missing ctx", async () => {
-  type D2 = {
-    count2: number;
-  };
-  const D2Dep = Dependency<D2>();
+    type D2 = {
+        count2: number;
+    };
+    const D2Dep = Dependency<D2>();
 
-  const z = Tug.depends(D2Dep)(async (ctx) => ctx.read(D2Dep).count2 * 2);
+    const z = TugBuilder.depends(D2Dep)(
+        async (ctx) => ctx.read(D2Dep).count2 * 2
+    );
 
-  Tug(async (ctx) => {
-    //@ts-expect-error
-    await ctx.use(z);
-  });
+    TugBuilder(async (ctx) => {
+        //@ts-expect-error
+        await ctx.use(z);
+    });
 });
 
 test("different ctx, same tug", async () => {
-  type D1 = {
-    count: number;
-  };
-  const D1Dep = Dependency<D1>();
+    type D1 = {
+        count: number;
+    };
+    const D1Dep = Dependency<D1>();
 
-  type D2 = {
-    count2: number;
-  };
-  const D2Dep = Dependency<D2>();
+    type D2 = {
+        count2: number;
+    };
+    const D2Dep = Dependency<D2>();
 
-  const x = Tug.depends(D1Dep).depends(D2Dep)(async (ctx) => {
-    const a = ctx.read(D1Dep).count;
-    const b = ctx.read(D2Dep).count2;
-    return a + b;
-  });
+    const x = TugBuilder.depends(D1Dep).depends(D2Dep)(async (ctx) => {
+        const a = ctx.read(D1Dep).count;
+        const b = ctx.read(D2Dep).count2;
+        return a + b;
+    });
 
-  expect(
-    await x
-      .provide(D1Dep, {
-        count: 1,
-      })
-      .provide(D2Dep, {
-        count2: 2,
-      })
-      .exec()
-  ).toBe(3);
+    expect(
+        await x
+            .provide(D1Dep, {
+                count: 1,
+            })
+            .provide(D2Dep, {
+                count2: 2,
+            })
+            .exec()
+    ).toBe(3);
 });
 
 test("different ctx, same tug err", async () => {
-  type D1 = {
-    count: number;
-  };
-  const D1Dep = Dependency<D1>();
+    type D1 = {
+        count: number;
+    };
+    const D1Dep = Dependency<D1>();
 
-  type D2 = {
-    count2: number;
-  };
-  const D2Dep = Dependency<D2>();
+    type D2 = {
+        count2: number;
+    };
+    const D2Dep = Dependency<D2>();
 
-  Tug.depends(D1Dep)(async (ctx) => {
-    const a = ctx.read(D1Dep).count;
-    //@ts-expect-error
-    const b = ctx.read(D2Dep).count2;
-    return a + b;
-  });
+    TugBuilder.depends(D1Dep)(async (ctx) => {
+        const a = ctx.read(D1Dep).count;
+        //@ts-expect-error
+        const b = ctx.read(D2Dep).count2;
+        return a + b;
+    });
 });
 
 test("different ctx", async () => {
-  type D1 = {
-    count: number;
-  };
-  const D1Dep = Dependency<D1>();
+    type D1 = {
+        count: number;
+    };
+    const D1Dep = Dependency<D1>();
 
-  type D2 = {
-    count2: number;
-  };
-  const D2Dep = Dependency<D2>();
+    type D2 = {
+        count2: number;
+    };
+    const D2Dep = Dependency<D2>();
 
-  const y = Tug.depends(D1Dep)((ctx) => ctx.read(D1Dep).count * 1);
+    const y = TugBuilder.depends(D1Dep)((ctx) => ctx.read(D1Dep).count * 1);
 
-  const z = Tug.depends(D2Dep)(async (ctx) => ctx.read(D2Dep).count2 * 2);
+    const z = TugBuilder.depends(D2Dep)(
+        async (ctx) => ctx.read(D2Dep).count2 * 2
+    );
 
-  const x = Tug.depends(D1Dep).depends(D2Dep)(async (ctx) => {
-    const a = await ctx.use(y);
-    const b = await ctx.use(z);
-    return a + b;
-  });
+    const x = TugBuilder.depends(D1Dep).depends(D2Dep)(async (ctx) => {
+        const a = await ctx.use(y);
+        const b = await ctx.use(z);
+        return a + b;
+    });
 
-  expect(
-    await x
-      .provide(D1Dep, {
-        count: 1,
-      })
-      .provide(D2Dep, {
-        count2: 2,
-      })
-      .exec()
-  ).toBe(5);
+    expect(
+        await x
+            .provide(D1Dep, {
+                count: 1,
+            })
+            .provide(D2Dep, {
+                count2: 2,
+            })
+            .exec()
+    ).toBe(5);
 });
 
 test("different ctx chain", async () => {
-  type D1 = {
-    count: number;
-  };
-  const D1Dep = Dependency<D1>();
+    type D1 = {
+        count: number;
+    };
+    const D1Dep = Dependency<D1>();
 
-  type D2 = {
-    count2: number;
-  };
-  const D2Dep = Dependency<D2>();
+    type D2 = {
+        count2: number;
+    };
+    const D2Dep = Dependency<D2>();
 
-  const y = Tug.depends(D1Dep)((ctx) => ctx.read(D1Dep).count * 1);
+    const y = TugBuilder.depends(D1Dep)((ctx) => ctx.read(D1Dep).count * 1);
 
-  const z = Tug.depends(D2Dep)(async (ctx) => ctx.read(D2Dep).count2 * 2);
+    const z = TugBuilder.depends(D2Dep)(
+        async (ctx) => ctx.read(D2Dep).count2 * 2
+    );
 
-  const x = y.chain((a) => z.map((b) => a + b));
+    const x = y.chain((a) => z.map((b) => a + b));
 
-  expect(
-    await x
-      .provide(D1Dep, {
-        count: 1,
-      })
-      .provide(D2Dep, {
-        count2: 2,
-      })
-      .exec()
-  ).toBe(5);
+    expect(
+        await x
+            .provide(D1Dep, {
+                count: 1,
+            })
+            .provide(D2Dep, {
+                count2: 2,
+            })
+            .exec()
+    ).toBe(5);
 });
 
 test("different ctx chain provided", async () => {
-  type D1 = {
-    count: number;
-  };
-  const D1Dep = Dependency<D1>();
+    type D1 = {
+        count: number;
+    };
+    const D1Dep = Dependency<D1>();
 
-  type D2 = {
-    count2: number;
-  };
-  const D2Dep = Dependency<D2>();
+    type D2 = {
+        count2: number;
+    };
+    const D2Dep = Dependency<D2>();
 
-  const y = Tug.depends(D1Dep)((ctx) => ctx.read(D1Dep).count * 1).provide(
-    D1Dep,
-    {
-      count: 1,
-    }
-  );
+    const y = TugBuilder.depends(D1Dep)(
+        (ctx) => ctx.read(D1Dep).count * 1
+    ).provide(D1Dep, {
+        count: 1,
+    });
 
-  const z = Tug.depends(D2Dep)(async (ctx) => ctx.read(D2Dep).count2 * 2);
+    const z = TugBuilder.depends(D2Dep)(
+        async (ctx) => ctx.read(D2Dep).count2 * 2
+    );
 
-  const x = y.chain((a) => z.map((b) => a + b));
+    const x = y.chain((a) => z.map((b) => a + b));
 
-  expect(
-    await x
-      .provide(D1Dep, {
-        count: 100,
-      })
-      .provide(D2Dep, {
-        count2: 2,
-      })
-      .exec()
-  ).toBe(5);
+    expect(
+        await x
+            .provide(D1Dep, {
+                count: 100,
+            })
+            .provide(D2Dep, {
+                count2: 2,
+            })
+            .exec()
+    ).toBe(5);
 });
 
 test("collision err", async () => {
-  type D1 = {
-    count: number;
-  };
-  const D1Dep = Dependency<D1>();
+    type D1 = {
+        count: number;
+    };
+    const D1Dep = Dependency<D1>();
 
-  type D2 = {
-    count: number;
-  };
-  const D2Dep = Dependency<D2>();
+    type D2 = {
+        count: number;
+    };
+    const D2Dep = Dependency<D2>();
 
-  const y = Tug.depends(D1Dep)((ctx) => ctx.read(D1Dep).count * 1);
+    const y = TugBuilder.depends(D1Dep)((ctx) => ctx.read(D1Dep).count * 1);
 
-  const z = Tug.depends(D2Dep)(async (ctx) => ctx.read(D2Dep).count * 2);
+    const z = TugBuilder.depends(D2Dep)(
+        async (ctx) => ctx.read(D2Dep).count * 2
+    );
 
-  //@ts-expect-error
-  Tug.depends(D1Dep).depends(D2Dep)(async (ctx) => {
-    const a = await ctx.use(y);
-    const b = await ctx.use(z);
-    return a + b;
-  });
+    //@ts-expect-error
+    TugBuilder.depends(D1Dep).depends(D2Dep)(async (ctx) => {
+        const a = await ctx.use(y);
+        const b = await ctx.use(z);
+        return a + b;
+    });
 });
 
 test("different ctx + provide", async () => {
-  type D1 = {
-    count1: number;
-  };
-  const D1Dep = Dependency<D1>();
+    type D1 = {
+        count1: number;
+    };
+    const D1Dep = Dependency<D1>();
 
-  type D2 = {
-    count2: number;
-  };
-  const D2Dep = Dependency<D2>();
+    type D2 = {
+        count2: number;
+    };
+    const D2Dep = Dependency<D2>();
 
-  const y = Tug.depends(D1Dep)((ctx) => {
-    return ctx.read(D1Dep).count1 * 1;
-  }).provide(D1Dep, {
-    count1: 1,
-  });
+    const y = TugBuilder.depends(D1Dep)((ctx) => {
+        return ctx.read(D1Dep).count1 * 1;
+    }).provide(D1Dep, {
+        count1: 1,
+    });
 
-  const z = Tug.depends(D2Dep)(
-    async (ctx) => ctx.read(D2Dep).count2 * 2
-  ).provide(D2Dep, {
-    count2: 2,
-  });
+    const z = TugBuilder.depends(D2Dep)(
+        async (ctx) => ctx.read(D2Dep).count2 * 2
+    ).provide(D2Dep, {
+        count2: 2,
+    });
 
-  const x = Tug(async (ctx) => {
-    const a = await ctx.use(y);
-    const b = await ctx.use(z);
-    return a + b;
-  });
+    const x = TugBuilder(async (ctx) => {
+        const a = await ctx.use(y);
+        const b = await ctx.use(z);
+        return a + b;
+    });
 
-  expect(await x.exec()).toBe(5);
+    expect(await x.exec()).toBe(5);
 });
 
 test("map", async () => {
-  const v1 = await Tug(() => 1)
-    .map((it) => it + 1)
-    .exec();
-  expect(v1).toBe(2);
+    const v1 = await TugBuilder(() => 1)
+        .map((it) => it + 1)
+        .exec();
+    expect(v1).toBe(2);
 });
 
 test("flatMap", async () => {
-  const v1 = await Tug(() => 1)
-    .flatMap((it) => Tug.of(String(it)))
-    .exec();
-  expect(v1).toBe("1");
+    const v1 = await TugBuilder(() => 1)
+        .flatMap((it) => TugBuilder.of(String(it)))
+        .exec();
+    expect(v1).toBe("1");
 });
 
 test("tug transform", async () => {
-  const v0 = Tug.of(3);
-  const v1 = await Tug(() => 1)
-    .tug(async (it, ctx) => it + (await ctx.use(v0)))
-    .exec();
-  expect(v1).toBe(4);
+    const v0 = TugBuilder.of(3);
+    const v1 = await TugBuilder(() => 1)
+        .tug(async (it, ctx) => it + (await ctx.use(v0)))
+        .exec();
+    expect(v1).toBe(4);
 });
 
 test("chain", async () => {
-  const v1 = await Tug(() => 1)
-    .chain((it) => Tug.of(String(it)))
-    .exec();
-  expect(v1).toBe("1");
+    const v1 = await TugBuilder(() => 1)
+        .chain((it) => TugBuilder.of(String(it)))
+        .exec();
+    expect(v1).toBe("1");
 });
 
 test("as rte", async () => {
-  type D1 = {
-    count1: number;
-  };
-  const D1Dep = Dependency<D1>();
-  const v1 = await Tug.depends(D1Dep)(() => 1).asRte(D1Dep)({ count1: 1 })();
-  expect(v1).toMatchInlineSnapshot(`
+    type D1 = {
+        count1: number;
+    };
+    const D1Dep = Dependency<D1>();
+    const v1 = await TugBuilder.depends(D1Dep)(() => 1).asRte(D1Dep)({
+        count1: 1,
+    })();
+    expect(v1).toMatchInlineSnapshot(`
 {
   "_tag": "Right",
   "right": 1,

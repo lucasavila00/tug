@@ -1,32 +1,31 @@
-import { callbacks } from "../../src/callbacks";
 import { AuthModule } from "./auth";
 import { AllCapacitiesTug } from "./core";
 import { OrderModule } from "./order";
 import { UserModule } from "./user";
 
 const AppTug = AllCapacitiesTug.depends(AuthModule)
-  .depends(OrderModule)
-  .depends(UserModule);
+    .depends(OrderModule)
+    .depends(UserModule);
 
 const canCurrentUserEditOrder = (orderId: string) =>
-  AppTug(async (ctx) => {
-    const orderItem = await ctx.use(
-      ctx.read(OrderModule).getOrderById(orderId)
-    );
-    const user = await ctx.use(ctx.read(AuthModule).getLoggedInUser());
-    return orderItem.userId === user.id;
-  });
+    AppTug(async (ctx) => {
+        const orderItem = await ctx.use(
+            ctx.read(OrderModule).getOrderById(orderId)
+        );
+        const user = await ctx.use(ctx.read(AuthModule).getLoggedInUser());
+        return orderItem.userId === user.id;
+    });
 
 export const deleteOrderHandler = (id: string) =>
-  AppTug(async (ctx) => {
-    const canUserEditOrder = await ctx.use(canCurrentUserEditOrder(id));
+    AppTug(async (ctx) => {
+        const canUserEditOrder = await ctx.use(canCurrentUserEditOrder(id));
 
-    if (!canUserEditOrder) {
-      throw new Error("User is not owner");
-    }
-    await ctx.use(ctx.read(OrderModule).deleteOrder(id));
-  });
+        if (!canUserEditOrder) {
+            throw new Error("User is not owner");
+        }
+        await ctx.use(ctx.read(OrderModule).deleteOrder(id));
+    });
 
 export const app = {
-  deleteOrder: deleteOrderHandler,
+    deleteOrder: deleteOrderHandler,
 };
