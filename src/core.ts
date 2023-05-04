@@ -67,7 +67,8 @@ let idCounter = 0;
 export const Dependency = <R>(): Dependency<R> => {
     idCounter++;
     return {
-        read: (it) => it,
+        /* istanbul ignore next */
+        read: null as any,
         id: idCounter,
     };
 };
@@ -309,7 +310,7 @@ export const TugBuilder: TugBuilder<never> = new Proxy(tug.newTug, {
             return () => TugBuilder;
         }
         throw new Error(
-            'Tug does not have a property named "' + String(prop) + '"'
+            'TugBuilder does not have a property named "' + String(prop) + '"'
         );
     },
 }) as any;
