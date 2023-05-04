@@ -60,7 +60,7 @@ export type TugRte<R, A> = Reader<R, Task<Either<TugError, A>>>;
 export type TugRpe<R, A> = Reader<R, Promise<Either<TugError, A>>>;
 
 export type Dependency<R> = {
-    read: (it: any) => R;
+    read: R;
     id: number;
 };
 let idCounter = 0;
