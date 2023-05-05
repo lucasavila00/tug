@@ -431,13 +431,44 @@ test("chain", async () => {
 test("exec safe", async () => {
     const v1 = await TugBuilder(() => 1)
         .chain((it) => TugBuilder.of(String(it)))
-        .or((err) => {
+        .or((_err) => {
             return "";
         })
         .exec();
     expect(v1).toBe("1");
 });
 
+test("chain left 2", async () => {
+    const v1 = await TugBuilder.throws((it): it is "a" => it === "a")
+        .of("x")
+
+        .thenn((_it) => {
+            throw "a";
+        })
+        .execEither();
+    expect(v1).toMatchInlineSnapshot(`
+        {
+          "_tag": "Left",
+          "left": "a",
+        }
+    `);
+
+    const v2 = await TugBuilder.throws((it): it is "a" => it === "a")
+        .of("x")
+
+        .thenn((_it) => {
+            throw "b";
+        })
+        .execEither();
+    expect(v2).toMatchInlineSnapshot(`
+            {
+              "_tag": "Left",
+              "left": TugException {
+                "content": "b",
+              },
+            }
+    `);
+});
 test("chain left", async () => {
     class MyError {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -446,16 +477,17 @@ test("chain left", async () => {
     }
 
     const v1 = await TugBuilder.throws((it): it is "a" => it === "a")
-        .left("a")
-        .chain((it) =>
-            TugBuilder.throws((it): it is "b" => it === "b").of(String(it))
+        .throws((it): it is "b" => it === "b")
+        .of("a")
+        .chain((_it) =>
+            TugBuilder.throws((it): it is "b" => it === "b").left("b")
         )
         .execEither();
 
     expect(v1).toMatchInlineSnapshot(`
         {
           "_tag": "Left",
-          "left": "a",
+          "left": "b",
         }
     `);
 

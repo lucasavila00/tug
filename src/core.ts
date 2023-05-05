@@ -124,11 +124,11 @@ const unwrapEither = <E, A>(e: Either<E, A>): A => {
 
 const chainRpe =
     <R, E, A, B>(
-        rte: TugRpe<R, E, A>,
+        rpe: TugRpe<R, E, A>,
         f: (a: A) => TugRpe<R, E, B>
     ): TugRpe<R, E, B> =>
     async (deps: R) =>
-        rte(deps).then((e) => {
+        rpe(deps).then((e) => {
             if (e._tag === "Right") {
                 return f(e.right)(deps);
             } else {
@@ -205,8 +205,11 @@ export class Tug<R, E, A> {
         return this as any;
     };
 
-    public or<A2 extends A>(f: (e: E) => A2): Tug<R, never, A2> {
-        return null as any;
+    public or<A2 extends A>(_f: (e: E) => A2): Tug<R, never, A2> {
+        if (false) {
+            console.error("fold");
+        }
+        return this as any;
     }
 
     /// END DI
@@ -226,9 +229,7 @@ export class Tug<R, E, A> {
         );
     }
 
-    public flatMap<B, R2, E2>(
-        f: (a: A) => Tug<R2, E2, B>
-    ): Tug<R2 | R, E2 | E, B> {
+    public flatMap<B, R2>(f: (a: A) => Tug<R2, E, B>): Tug<R2 | R, E, B> {
         return new Tug(
             chainRpe(this.rpe, (a) => f(a).rpe as any),
             this.checksOfKnownErrors
@@ -324,7 +325,7 @@ export interface TugBuilder<R0, E> {
     /**
      * Constructs a new `tug` instance, with the given value as the error.
      */
-    left: <E2 extends E, A>(it: E2) => Tug<R0, E2, A>;
+    left: <E2 extends E, A>(it: E2) => Tug<R0, E | E2, A>;
 
     depends: <R>(
         it: Dependency<R>
