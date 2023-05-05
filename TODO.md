@@ -1,9 +1,10 @@
+- [ ] thenn (maybe map?)
 - [ ] error recovering (fold?)
 - [ ] chainFirst (todo: verify fp-ts behaviour)
 
+- [ ] callback tests
 - [ ] JTD
 - [ ] docs
-- [ ] build in CI
 
 
 // test("fromRte", async () => {

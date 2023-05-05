@@ -37,34 +37,52 @@ export interface Right<A> {
 export type Either<E, A> = Left<E> | Right<A>;
 
 /**
- * Reader type. Represents a function that takes a parameter and returns a value.
- */
-export type Reader<R, A> = (r: R) => A;
-
-type TugError = unknown;
-
-/**
  * A reader function that reads R, and returns a Promise of Either<unknown, A>.
  * This is the core type of this library.
  */
-export type TugRpe<R, A> = Reader<R, Promise<Either<TugError, A>>>;
+export type TugRpe<R, E, A> = (r: R) => Promise<Either<E, A>>;
+
+class TugTransportException {
+    public content: any;
+
+    constructor(content: any) {
+        this.content = content;
+    }
+}
+
+export class TugException {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    //@ts-ignore
+    __tag: "TugException";
+
+    public content: any;
+
+    constructor(content: any) {
+        this.content = content;
+    }
+
+    toString() {
+        return `TugException(${this.content})`;
+    }
+}
 
 export type Dependency<R> = {
     read: R;
 };
 export const Dependency = <R>(): Dependency<R> => null as any;
 
-export type TugBuilderOf<T extends TugBuilder<any>, A> = T extends TugBuilder<
-    infer D
->
-    ? Tug<D, A>
-    : never;
+export type TubBuiltBy<
+    T extends TugBuilder<any, any>,
+    A
+> = T extends TugBuilder<infer D, infer E> ? Tug<D, E, A> : never;
 
 type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
     k: infer I
 ) => void
     ? I
     : never;
+
+type TODO_Error = any;
 /**
  * Adds the `use` function to the context.
  */
@@ -76,9 +94,9 @@ export type CreateContext<R> = UnionToIntersection<R> & {
      */
     use: <R2, T>(
         it: [R2] extends [never]
-            ? Tug<R2, T>
+            ? Tug<R2, TODO_Error, T>
             : [R2] extends [R]
-            ? Tug<R2, T>
+            ? Tug<R2, TODO_Error, T>
             : CompileError<
                   [
                       "child-tug uses dependency that was not annotated in parent-tug"
@@ -105,7 +123,10 @@ const unwrapEither = <E, A>(e: Either<E, A>): A => {
 };
 
 const chainRpe =
-    <R, A, B>(rte: TugRpe<R, A>, f: (a: A) => TugRpe<R, B>): TugRpe<R, B> =>
+    <R, E, A, B>(
+        rte: TugRpe<R, E, A>,
+        f: (a: A) => TugRpe<R, E, B>
+    ): TugRpe<R, E, B> =>
     async (deps: R) =>
         rte(deps).then((e) => {
             if (e._tag === "Right") {
@@ -115,116 +136,171 @@ const chainRpe =
             }
         });
 
-export type tugReads<T extends Tug<any, any>> = T extends Tug<infer R, any>
+export type tugReads<T extends Tug<any, any, any>> = T extends Tug<
+    infer R,
+    any,
+    any
+>
     ? R
     : never;
 
-export type tugReturns<T extends Tug<any, any>> = T extends Tug<any, infer A>
+export type tugReturns<T extends Tug<any, any, any>> = T extends Tug<
+    any,
+    any,
+    infer A
+>
     ? A
     : never;
+
+type CheckOfKnownError = (it: any) => boolean;
 
 /**
  * The `tug` instance.
  */
-export class Tug<R, A> {
-    private readonly rpe: TugRpe<R, A>;
-    private constructor(rpe: TugRpe<R, A>) {
+export class Tug<R, E, A> {
+    private readonly rpe: TugRpe<R, E, A>;
+    private readonly checksOfKnownErrors: CheckOfKnownError[];
+    private constructor(
+        rpe: TugRpe<R, E, A>,
+        checksOfKnownErrors: CheckOfKnownError[]
+    ) {
         this.rpe = rpe;
+        this.checksOfKnownErrors = checksOfKnownErrors;
     }
 
-    /**
-     * Executes the `tug` instance and returns a promise of the result.
-     * If the `tug` fails, the promise will be rejected.
-     */
-    public exec: [R] extends [never]
+    //// DI
+    public execOrThrow: [R] extends [never]
         ? () => Promise<A>
+        : CompileErrorI<["dependency"], R, ["should be provided"]> = (() =>
+        this.rpe({} as any).then(unwrapEither)) as any;
+
+    public exec: [R] extends [never]
+        ? [E] extends [never]
+            ? () => Promise<A>
+            : CompileErrorI<["error"], E, ["can be thrown"]>
+        : CompileErrorI<["dependency"], R, ["should be provided"]> = this
+        .execOrThrow as any;
+
+    public execEither: [R] extends [never]
+        ? () => Promise<Either<E, A>>
         : CompileErrorI<["dependency"], R, ["should be provided"]> = (() => {
-        return this.rpe({} as any).then(unwrapEither);
+        return this.rpe({} as any);
     }) as any;
 
     public provide<R2, O extends R2>(
         _tag: Dependency<R2>,
         it: O
-    ): Tug<Exclude<R, R2>, A> {
-        return new Tug((deps) => this.rpe({ ...deps, ...it }));
+    ): Tug<Exclude<R, R2>, E, A> {
+        return new Tug(
+            (deps) => this.rpe({ ...deps, ...it }),
+            this.checksOfKnownErrors
+        );
     }
-
-    /**
-     * Executes the `tug` instance and returns a promise of an `Either`.
-     * If the `tug` fails, the promise will be resolved with a `Left`.
-     * If the `tug` succeeds, the promise will be resolved with a `Right`.
-     */
-
-    public execEither: [R] extends [never]
-        ? () => Promise<Either<TugError, A>>
-        : CompileErrorI<["dependency"], R, ["should be provided"]> = (() => {
-        return this.rpe({} as any);
-    }) as any;
 
     public depends: <R2>(
         it: Dependency<R2>
     ) => [Exclude<R2, R>] extends [never]
         ? CompileError<["dependency collides with others"]>
-        : Tug<R2 | R, A> = (_it) => {
+        : Tug<R2 | R, E, A> = (_it) => {
         return this as any;
     };
 
-    /**
-     * Takes a function `f` that receives the value of `this` can resolve to a value or reject a promise.
-     * If `this` `tug` succeeded, the returned `tug` will succeed with the value returned by `f`.
-     * If `this` `tug` failed, the returned `tug` will fail with the same error.
-     * If `f` throws an error or returns a rejected promise, the returned `tug` will fail with that error.
-     */
-    public thenn<B, R2 extends R>(
-        f: (a: A, ctx: CreateContext<R2>) => B | Promise<B>
-    ): Tug<R2, B> {
+    public or<A2 extends A>(f: (e: E) => A2): Tug<R, never, A2> {
+        return null as any;
+    }
+
+    /// END DI
+
+    //// COMPOSITION
+    public thenn<B>(
+        f: (a: A, ctx: CreateContext<R>) => B | Promise<B>
+    ): Tug<R, E, B> {
         return new Tug(
-            chainRpe(this.rpe, (a) => Tug.TugRpe<R2, B>((ctx) => f(a, ctx)))
+            chainRpe(this.rpe, (a) =>
+                Tug.TugRpe<R, E, B>(
+                    (ctx) => f(a, ctx),
+                    this.checksOfKnownErrors
+                )
+            ),
+            this.checksOfKnownErrors
         );
     }
 
-    /**
-     * Takes a function `f` that returns another `tug` instance.
-     * If `this` `tug` failed, the returned `tug` will fail with the same error.
-     * If `this` `tug` succeeded, the returned `tug` will be the result of `f` applied to the value of `this`.
-     */
-    public flatMap<B, R2>(f: (a: A) => Tug<R2, B>): Tug<R2 | R, B> {
-        return this.chain(f);
+    public flatMap<B, R2, E2>(
+        f: (a: A) => Tug<R2, E2, B>
+    ): Tug<R2 | R, E2 | E, B> {
+        return new Tug(
+            chainRpe(this.rpe, (a) => f(a).rpe as any),
+            this.checksOfKnownErrors
+        ) as any;
     }
 
-    /**
-     * Alias for `flatMap`.
-     */
-    public chain<B, R2>(f: (a: A) => Tug<R2, B>): Tug<R2 | R, B> {
-        return new Tug(chainRpe(this.rpe, (a) => f(a).rpe as any)) as any;
-    }
+    public chain = this.flatMap;
 
+    /// END COMPOSITION
+
+    //// CREATION
     private static TugRpe =
-        <R, A>(cb: TugCallback<R, A>): TugRpe<R, A> =>
+        <R, E, A>(
+            cb: TugCallback<R, A>,
+            checksOfKnownErrors: CheckOfKnownError[]
+        ): TugRpe<R, E, A> =>
         async (dependencies: R) => {
             const context = {
                 ...dependencies,
-                use: <T>(it: Tug<any, T>): Promise<T> =>
-                    it.rpe(dependencies).then(unwrapEither),
+                use: <T>(it: Tug<any, E, T>): Promise<T> =>
+                    it
+                        .rpe(dependencies)
+                        .then(unwrapEither)
+                        .catch((e) => {
+                            throw new TugTransportException(e);
+                        }),
             };
 
             try {
-                return await Promise.resolve(cb(context as any)).then(
-                    (right) => ({
-                        right,
-                        _tag: "Right",
-                    })
-                );
+                const right = await cb(context as any);
+                return {
+                    right,
+                    _tag: "Right",
+                };
             } catch (left) {
-                return { _tag: "Left", left };
+                if (left instanceof TugTransportException) {
+                    return { _tag: "Left", left: left.content };
+                }
+                for (const check of checksOfKnownErrors) {
+                    if (check(left)) {
+                        return { _tag: "Left", left: left as any };
+                    }
+                }
+
+                return {
+                    _tag: "Left",
+                    left: new TugException(left),
+                };
             }
         };
 
-    static newTug = <R, A>(cb: TugCallback<R, A>): Tug<R, A> =>
-        new Tug(Tug.TugRpe(cb));
+    static newTug = <R, E, A>(
+        cb: TugCallback<R, A>,
+        checksOfKnownErrors: CheckOfKnownError[]
+    ): Tug<R, E, A> =>
+        new Tug(Tug.TugRpe(cb, checksOfKnownErrors), checksOfKnownErrors);
+
+    static left = <R, E, A>(
+        e: E,
+        checksOfKnownErrors: CheckOfKnownError[]
+    ): Tug<R, E, A> =>
+        new Tug(
+            async () => ({
+                _tag: "Left",
+                left: e,
+            }),
+            checksOfKnownErrors
+        );
+    /// END CREATION
 }
 
-export interface TugBuilder<R0> {
+export interface TugBuilder<R0, E> {
     /**
      * Constructs a new `tug` instance. The callback is executed when the `tug` is executed.
      *
@@ -233,52 +309,61 @@ export interface TugBuilder<R0> {
      *
      * The callback is passed a context object, which contains the dependencies of the `tug`, and the `use` function.
      */
-    <A>(cb: TugCallback<R0, A>): Tug<R0, A>;
+    <A>(cb: TugCallback<R0, A>): Tug<R0, E, A>;
 
     /**
      * Constructs a new `tug` instance, with the given value as the result.
      */
-    of: <A, R2 = never>(it: A) => Tug<R2 | R0, A>;
+    of: <A, R2 = never>(it: A) => Tug<R2 | R0, E, A>;
 
     /**
      * Constructs a new `tug` instance, with the given value as the result.
      */
-    right: <A>(it: A) => Tug<R0, A>;
+    right: <A>(it: A) => Tug<R0, E, A>;
 
     /**
      * Constructs a new `tug` instance, with the given value as the error.
      */
-    left: <A>(it: any) => Tug<R0, A>;
-
-    flat: <R, A>(it: TugCallback<R0, Tug<R, A>>) => Tug<R | R0, A>;
+    left: <E2 extends E, A>(it: E2) => Tug<R0, E2, A>;
 
     depends: <R>(
         it: Dependency<R>
     ) => [Exclude<R, R0>] extends [never]
         ? CompileError<["dependency collides with others"]>
-        : TugBuilder<R | R0>;
+        : TugBuilder<R | R0, E>;
+
+    throws: <E2>(cb: (it: any) => it is E2) => TugBuilder<R0, E | E2>;
 }
+const buildTugBuilder = (
+    checksOfKnownErrors: CheckOfKnownError[]
+): TugBuilder<any, any> =>
+    new Proxy((cb: any) => Tug.newTug(cb, checksOfKnownErrors), {
+        get: (_target, prop, _receiver) => {
+            if (prop == "of" || prop == "right") {
+                return <T>(it: T) => Tug.newTug(() => it, checksOfKnownErrors);
+            }
+            if (prop == "left") {
+                return <T>(it: T) => Tug.left(it, checksOfKnownErrors);
+            }
+
+            if (prop === "depends") {
+                return () => buildTugBuilder(checksOfKnownErrors);
+            }
+            if (prop === "throws") {
+                return (cb: any) =>
+                    buildTugBuilder([...checksOfKnownErrors, cb]);
+            }
+            throw new Error(
+                'TugBuilder does not have a property named "' +
+                    String(prop) +
+                    '"'
+            );
+        },
+    }) as any;
 
 /**
  * Constructs a new `tug` instance.
  */
-export const TugBuilder: TugBuilder<never> = new Proxy(Tug.newTug, {
-    get: (_target, prop, _receiver) => {
-        if (prop == "of" || prop == "right") {
-            return <T>(it: T) => Tug.newTug(() => it);
-        }
-        if (prop == "left") {
-            return <T>(it: T) =>
-                Tug.newTug(() => {
-                    throw it;
-                });
-        }
-
-        if (prop === "depends") {
-            return () => TugBuilder;
-        }
-        throw new Error(
-            'TugBuilder does not have a property named "' + String(prop) + '"'
-        );
-    },
-}) as any;
+export const TugBuilder: TugBuilder<never, TugException> = buildTugBuilder([
+    (it) => it instanceof TugException,
+]) as any;
