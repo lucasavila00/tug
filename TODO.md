@@ -1,6 +1,5 @@
 - [ ] error recovering (fold?)
-- [ ] RTE compatibility
-- [ ] 100% test coverage
+- [ ] chainFirst (todo: verify fp-ts behaviour)
 
 - [ ] JTD
 - [ ] docs

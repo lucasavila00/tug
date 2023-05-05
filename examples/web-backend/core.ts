@@ -18,22 +18,26 @@ type DatabaseClient = {
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Capacities {
     export interface LoggerT {
-        log: (msg: string) => void;
-        error: (msg: string) => void;
+        Logger: {
+            log: (msg: string) => void;
+            error: (msg: string) => void;
+        };
     }
-    export const Logger = Dependency<LoggerT, "Logger">("Logger");
+    export const Logger = Dependency<LoggerT>();
 
     export interface DatabaseT {
-        db: () => Promise<DatabaseClient>;
+        Database: {
+            db: () => Promise<DatabaseClient>;
+        };
     }
-    export const Database = Dependency<DatabaseT, "Database">("Database");
+    export const Database = Dependency<DatabaseT>();
 
     export interface UserContextT {
-        currentUserId: () => Promise<string | undefined>;
+        UserContext: {
+            currentUserId: () => Promise<string | undefined>;
+        };
     }
-    export const UserContext = Dependency<UserContextT, "UserContext">(
-        "UserContext"
-    );
+    export const UserContext = Dependency<UserContextT>();
 }
 
 export const AllCapacitiesTug = TugBuilder.depends(Capacities.UserContext)

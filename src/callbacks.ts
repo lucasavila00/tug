@@ -3,7 +3,7 @@ import { Dependency, Tug, tugReads, tugReturns } from "./core";
 type CallbackProvider<
     RS extends Record<string, (...args: any) => Tug<any, any>>
 > = RS & {
-    provide: <PROVIDING extends [any, any], PROVIDED_ARG extends PROVIDING[1]>(
+    provide: <PROVIDING, PROVIDED_ARG extends PROVIDING>(
         tag: Dependency<PROVIDING>,
         it: PROVIDED_ARG
     ) => CallbackProvider<{

@@ -10,9 +10,9 @@ import { callbacks } from "../../src/callbacks";
 
 export const start = async () => {
     const connectedApp = callbacks(app)
-        .provide(OrderModule, OrderModuleTug)
-        .provide(UserModule, UserModuleTug)
-        .provide(AuthModule, AuthModuleTug)
+        .provide(OrderModule, { OrderModule: OrderModuleTug })
+        .provide(UserModule, { UserModule: UserModuleTug })
+        .provide(AuthModule, { AuthModule: AuthModuleTug })
         .provide(Capacities.Logger, null as any)
         .provide(Capacities.Database, null as any);
 
