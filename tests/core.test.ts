@@ -415,11 +415,3 @@ test("chain left", async () => {
         }
     `);
 });
-
-test("flatten", async () => {
-    const v1 = await TugBuilder(() => 1)
-        .thenn((it) => TugBuilder.of(String(it)))
-        .flatten()
-        .exec();
-    expect(v1).toBe("1");
-});

@@ -16,7 +16,7 @@ const getLoggedInUserId = () =>
 const getLoggedInUser = () =>
     getLoggedInUserId()
         .thenn((userId, ctx) => ctx.UserModule.getUserById(userId))
-        .flatten();
+        .chain((it) => it);
 
 export const AuthModuleTug = {
     getLoggedInUser,

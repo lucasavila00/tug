@@ -139,7 +139,7 @@ export class Tug<R, A> {
     public exec: [R] extends [never]
         ? () => Promise<A>
         : CompileErrorI<["dependency"], R, ["should be provided"]> = (() => {
-        return this.execEither().then(unwrapEither);
+        return this.rpe({} as any).then(unwrapEither);
     }) as any;
 
     public provide<R2, O extends R2>(
@@ -154,9 +154,12 @@ export class Tug<R, A> {
      * If the `tug` fails, the promise will be resolved with a `Left`.
      * If the `tug` succeeds, the promise will be resolved with a `Right`.
      */
-    public execEither(): Promise<Either<TugError, A>> {
+
+    public execEither: [R] extends [never]
+        ? () => Promise<Either<TugError, A>>
+        : CompileErrorI<["dependency"], R, ["should be provided"]> = (() => {
         return this.rpe({} as any);
-    }
+    }) as any;
 
     public depends: <R2>(
         it: Dependency<R2>
@@ -179,12 +182,6 @@ export class Tug<R, A> {
             chainRpe(this.rpe, (a) => Tug.TugRpe<R2, B>((ctx) => f(a, ctx)))
         );
     }
-
-    public flatten: A extends Tug<infer R2, infer A2>
-        ? () => Tug<R | R2, A2>
-        : CompileError<["not nested tugs"]> = (() => {
-        return this.chain((it) => it as any);
-    }) as any;
 
     /**
      * Takes a function `f` that returns another `tug` instance.
