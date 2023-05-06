@@ -174,6 +174,12 @@ test("same ctx", async () => {
 
     const w: ETugItem<number> = DTug(async (_ctx) => 1);
 
+    const printE = (it: ETugItem<number>) => {
+        return it;
+    };
+
+    printE(y);
+
     const x = ETug(async (ctx) => {
         const a = await ctx.use(y);
         const b = await ctx.use(z);

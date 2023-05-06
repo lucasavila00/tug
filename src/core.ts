@@ -281,13 +281,9 @@ export class Tug<in out S, out R, out E, out A> {
         );
     }
 
-    public flatMap<B, R2, E2, S2>(
-        f: (a: A) => Tug<S2, R2, E2, B>
-    ): S2 extends void
-        ? Tug<S, R2 | R, E | E2, B>
-        : S2 extends S
-        ? Tug<S, R2 | R, E | E2, B>
-        : CompileError<["state type mismatch"]> {
+    public flatMap<B, R2>(
+        f: (a: A) => Tug<S, R2, E, B>
+    ): Tug<S, R2 | R, E | E, B> {
         return new Tug(chainRpe(this.rpe, (a) => f(a).rpe as any)) as any;
     }
 
