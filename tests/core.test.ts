@@ -607,3 +607,32 @@ test("add property", async () => {
         }
     `);
 });
+test("chain first", async () => {
+    const it = await TugBuilder.of(123)
+        .chainFirst(() => TugBuilder.left(1))
+        .exec.either();
+    expect(it).toMatchInlineSnapshot(`
+        {
+          "_tag": "Left",
+          "left": 1,
+        }
+    `);
+    const it2 = await TugBuilder.left(2)
+        .chainFirst(() => TugBuilder.left(1))
+        .exec.either();
+    expect(it2).toMatchInlineSnapshot(`
+        {
+          "_tag": "Left",
+          "left": 2,
+        }
+    `);
+    const it3 = await TugBuilder.of(2)
+        .chainFirst(() => TugBuilder.of(1))
+        .exec.either();
+    expect(it3).toMatchInlineSnapshot(`
+        {
+          "_tag": "Right",
+          "right": 2,
+        }
+    `);
+});

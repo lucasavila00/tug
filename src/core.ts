@@ -199,6 +199,18 @@ export class Tug<in out S, out R, out A> {
 
     public chain = this.flatMap;
 
+    public chainFirst<B, R2, R3 extends R>(
+        f: (a: A, ctx: { deps: UnionToIntersection<R3> }) => Tug<S, R2, B>
+    ): Tug<S, R2 | R, A> {
+        return new Tug(
+            chainRpe(this.rpe, (a, deps) =>
+                chainRpe(f(a, { deps } as any).rpe, () => Tug.right(a).rpe)
+            )
+        );
+    }
+
+    public sideEffect = this.chainFirst;
+
     public fold<B>(
         onLeft: (e: TugUncaughtException) => Tug<S, R, B>,
         onRight: (a: A) => Tug<S, R, B>
@@ -214,18 +226,18 @@ export class Tug<in out S, out R, out A> {
         );
     }
 
-    public bind<N extends string, R2, B>(
-        name: Exclude<N, keyof A>,
-        f: (a: A) => Tug<S, R2, B>
+    public bind<N extends string, R2, B, A2 extends A>(
+        name: Exclude<N, keyof A2>,
+        f: (a: A2) => Tug<S, R2, B>
     ): Tug<
         S,
         R2 | R,
-        A & {
-            [K in N]: B;
+        {
+            [K in keyof A2 | N]: K extends keyof A2 ? A2[K] : B;
         }
     > {
         return this.chain((a) =>
-            f(a).try((res) => ({ ...a, [name]: res } as any))
+            f(a as any).try((res) => ({ ...a, [name]: res } as any))
         ) as any;
     }
 
