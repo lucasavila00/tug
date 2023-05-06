@@ -4,7 +4,7 @@
 import { createContextInner } from '../context';
 import { AppRouter, appRouter } from './_app';
 import { inferProcedureInput } from '@trpc/server';
-import { AddPost, AddPostInput, PostById } from './post.core';
+import { AddPostInput, PostModule } from './post.core';
 import { PrismaDependency } from './tugs';
 
 test('add and get post', async () => {
@@ -42,10 +42,10 @@ test('add and get post - tug', async () => {
     },
   } as any;
 
-  const post = await AddPost(input)
+  const post = await PostModule.AddPost(input)
     .provide(PrismaDependency, { prismaClient })
     .exec.orThrow();
-  const byId = await PostById(post.id)
+  const byId = await PostModule.PostById(post.id)
     .provide(PrismaDependency, { prismaClient })
     .exec.orThrow();
 

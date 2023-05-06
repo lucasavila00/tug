@@ -24,7 +24,14 @@ export const AddPostInput = z.object({
 
 export type AddPostInput = z.infer<typeof AddPostInput>;
 
-export const AddPost = (input: AddPostInput) =>
+export const ListPostInput = z.object({
+  limit: z.number().min(1).max(100).nullish(),
+  cursor: z.string().nullish(),
+});
+
+export type ListPostInput = z.infer<typeof ListPostInput>;
+
+const AddPost = (input: AddPostInput) =>
   AppTug.try(async (ctx) => {
     const post = await ctx.deps.prismaClient.post.create({
       data: input,
@@ -33,7 +40,7 @@ export const AddPost = (input: AddPostInput) =>
     return post;
   });
 
-export const PostById = (postId: string) =>
+const PostById = (postId: string) =>
   AppTug.try(async (ctx) => {
     const post = await ctx.deps.prismaClient.post.findUnique({
       where: { id: postId },
@@ -48,14 +55,7 @@ export const PostById = (postId: string) =>
     return post;
   });
 
-export const ListPostInput = z.object({
-  limit: z.number().min(1).max(100).nullish(),
-  cursor: z.string().nullish(),
-});
-
-export type ListPostInput = z.infer<typeof ListPostInput>;
-
-export const ListPost = (input: ListPostInput) =>
+const ListPost = (input: ListPostInput) =>
   AppTug.try(async (ctx) => {
     /**
      * For pagination docs you can have a look here
@@ -94,3 +94,9 @@ export const ListPost = (input: ListPostInput) =>
       nextCursor,
     };
   });
+
+export const PostModule = {
+  AddPost,
+  PostById,
+  ListPost,
+};

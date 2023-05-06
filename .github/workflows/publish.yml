@@ -21,6 +21,5 @@ jobs:
               run: |
                   pnpm install
                   cd packages/tug-ts
-                  npm ci
                   npm run build $GITHUB_REF_NAME
                   npm run release
