@@ -174,7 +174,7 @@ test("deps object", async () => {
                 count: 1,
             })
             .exec.orThrow()
-    ).toBe(4);
+    ).toBe(3);
 });
 
 test("same ctx", async () => {
@@ -355,7 +355,7 @@ test("different ctx chain", async () => {
 
     const z = TugBuilder.depends(D2Dep)(async (ctx) => ctx.deps.count2 * 2);
 
-    const x = y.chain((a) => z.thenn((b) => a + b));
+    const x = y.chain((a) => z.continue((b) => a + b));
 
     expect(
         await x
@@ -389,7 +389,7 @@ test("different ctx chain provided", async () => {
 
     const z = TugBuilder.depends(D2Dep)(async (ctx) => ctx.deps.count2 * 2);
 
-    const x = y.chain((a) => z.thenn((b) => a + b));
+    const x = y.chain((a) => z.continue((b) => a + b));
 
     expect(
         await x
@@ -504,7 +504,7 @@ test("different ctx + provide", async () => {
 
 test("map", async () => {
     const v1 = await TugBuilder(() => 1)
-        .thenn((it) => it + 1)
+        .continue((it) => it + 1)
         .exec.orThrow();
     expect(v1).toBe(2);
 });
@@ -519,7 +519,7 @@ test("flatMap", async () => {
 test("tug transform", async () => {
     const v0 = TugBuilder.of(3);
     const v1 = await TugBuilder(() => 1)
-        .thenn(async (it, ctx) => it + (await ctx.use(v0)))
+        .continue(async (it, ctx) => it + (await ctx.use(v0)))
         .exec.orThrow();
     expect(v1).toBe(4);
 });
@@ -539,7 +539,7 @@ test("stateful", async () => {
     expect(await v0.exec.orThrow()).toBe("asd");
 
     const v01 = await TugBuilder.stateful<string>()((ctx) => ctx.readState())
-        .thenn(async (it, ctx) => it + (await ctx.use(v0)))
+        .continue(async (it, ctx) => it + (await ctx.use(v0)))
         .provideState("def")
         .exec.orThrow();
     expect(v01).toBe("defasd");
@@ -551,7 +551,7 @@ test("stateful", async () => {
     expect(await v10.exec.orThrow("asd")).toBe("asd");
 
     const v101 = await TugBuilder.stateful<string>()((ctx) => ctx.readState())
-        .thenn(async (it, ctx) => it + (await ctx.use(v10)))
+        .continue(async (it, ctx) => it + (await ctx.use(v10)))
         .provideState("xx")
         .exec.orThrow();
     expect(v101).toBe("xxxx");
@@ -580,7 +580,7 @@ test("stateful2", async () => {
     expect(v1).toBe("asd");
 
     const v2 = await TugBuilder.stateful<string>()((ctx) => ctx.setState("def"))
-        .thenn((_it, ctx) => ctx.readState())
+        .continue((_it, ctx) => ctx.readState())
         .exec.orThrow("asd");
     expect(v2).toBe("def");
 });
@@ -598,7 +598,7 @@ test("exec safe", async () => {
 test("map left", async () => {
     const v1 = await TugBuilder.throws((it): it is "a" => it === "a")
         .of("x")
-        .thenn(() => {
+        .continue(() => {
             throw "a";
         })
         .mapLeft((_it) => "b" as const)
@@ -614,7 +614,7 @@ test("map left", async () => {
 test("map left err", async () => {
     TugBuilder.throws((it): it is "a" => it === "a")
         .of("x")
-        .thenn(() => {
+        .continue(() => {
             throw "a";
         })
         //@ts-expect-error
@@ -637,14 +637,14 @@ test("map left 2", async () => {
 test("fold", async () => {
     const v1 = await TugBuilder.throws((it): it is "a" => it === "a")
         .of("x")
-        .thenn(() => {
+        .continue(() => {
             throw "a";
         })
         .fold(
             (_it) => TugBuilder.of(1),
             (_it) => TugBuilder.of(123)
         )
-        .thenn(() => {
+        .continue(() => {
             throw "a";
         })
         .exec.either();
@@ -660,7 +660,7 @@ test("fold", async () => {
 test("thenn throws", async () => {
     const v1 = await TugBuilder.throws((it): it is "a" => it === "a")
         .of("x")
-        .thenn(async (_it, ctx) => {
+        .continue(async (_it, ctx) => {
             ctx.use(
                 //@ts-expect-error
                 TugBuilder.throws((it): it is "b" => it === "b").left("b")
@@ -678,7 +678,7 @@ test("thenn throws", async () => {
 test("chain left 2", async () => {
     const v2 = await TugBuilder.throws((it): it is "a" => it === "a")
         .of("x")
-        .thenn((_it) => {
+        .continue((_it) => {
             throw "b";
         })
         .exec.either();
@@ -747,4 +747,20 @@ test("or", async () => {
         .or((_e) => 2)
         .exec.orThrow();
     expect(v2).toBe(2);
+});
+
+test("add property", async () => {
+    const v2 = await TugBuilder.of({})
+        .bind("a", () => TugBuilder.of(1))
+        .bind("b", (acc) => TugBuilder.of(acc.a + 1))
+        .exec.either();
+    expect(v2).toMatchInlineSnapshot(`
+        {
+          "_tag": "Right",
+          "right": {
+            "a": 1,
+            "b": 2,
+          },
+        }
+    `);
 });

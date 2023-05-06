@@ -1,4 +1,3 @@
-- [ ] error recovering (fold?)
 - [ ] throw instance method
 - [ ] thenn (maybe map?)
 - [ ] chainFirst (todo: verify fp-ts behaviour)

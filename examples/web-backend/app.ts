@@ -9,8 +9,10 @@ const AppTug = AllCapacitiesTug.depends(AuthModule)
 
 const canCurrentUserEditOrder = (orderId: string) =>
     AppTug(async (ctx) => {
-        const orderItem = await ctx.use(ctx.OrderModule.getOrderById(orderId));
-        const user = await ctx.use(ctx.AuthModule.getLoggedInUser());
+        const orderItem = await ctx.use(
+            ctx.deps.OrderModule.getOrderById(orderId)
+        );
+        const user = await ctx.use(ctx.deps.AuthModule.getLoggedInUser());
         return orderItem.userId === user.id;
     });
 
@@ -21,7 +23,7 @@ export const deleteOrderHandler = (id: string) =>
         if (!canUserEditOrder) {
             throw new Error("User is not owner");
         }
-        await ctx.use(ctx.OrderModule.deleteOrder(id));
+        await ctx.use(ctx.deps.OrderModule.deleteOrder(id));
     });
 
 export const app = {

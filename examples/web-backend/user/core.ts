@@ -6,7 +6,7 @@ const UserTug = TugBuilder.depends(Capacities.Database);
 
 const getUserById = (id: string) =>
     UserTug(async (ctx) => {
-        const db = await ctx.Database.db();
+        const db = await ctx.deps.Database.getInstance();
         const user = await db.collection<UserData>("users").findOne({ id });
         if (user == null) {
             throw new Error("user does not exist");
@@ -16,14 +16,14 @@ const getUserById = (id: string) =>
 
 const getAllUsers = () =>
     UserTug(async (ctx) => {
-        const db = await ctx.Database.db();
+        const db = await ctx.deps.Database.getInstance();
         const users = await db.collection<UserData>("users").findMany();
         return users;
     });
 
 const insertUser = (user: UserData) =>
     UserTug(async (ctx) => {
-        const db = await ctx.Database.db();
+        const db = await ctx.deps.Database.getInstance();
         const insertedUser = await db
             .collection<UserData>("users")
             .insertOne(user);

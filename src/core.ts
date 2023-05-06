@@ -185,7 +185,7 @@ export type tugReturns<T extends Tug<any, any, any, any>> = T extends Tug<
     : never;
 
 export class TugExecutor<in out S, out R, out E, out A> {
-    private readonly rpe: TugRPE<S, R, E, A>;
+    private readonly rpe: TugRPE<any, any, any, any>;
     constructor(rpe: TugRPE<S, R, E, A>) {
         this.rpe = rpe;
     }
@@ -234,7 +234,7 @@ export class TugExecutor<in out S, out R, out E, out A> {
  * The `tug` instance.
  */
 export class Tug<in out S, out R, out E, out A> {
-    private readonly rpe: TugRPE<S, R, E, A>;
+    private readonly rpe: TugRPE<any, any, any, any>;
     private constructor(rpe: TugRPE<S, R, E, A>) {
         this.rpe = rpe;
     }
@@ -285,7 +285,7 @@ export class Tug<in out S, out R, out E, out A> {
     /// END DI
 
     //// COMPOSITION
-    public thenn<B>(
+    public continue<B>(
         f: (a: A, ctx: CreateContext<S, R, E>) => B | Promise<B>
     ): Tug<S, R, E, B> {
         return new Tug(
@@ -358,6 +358,24 @@ export class Tug<in out S, out R, out E, out A> {
         );
     }
 
+    public bind<N extends string, R2, E2, B>(
+        name: Exclude<N, keyof A>,
+        f: (a: A) => Tug<S, R2, E2, B>
+    ): Tug<
+        S,
+        R2 | R,
+        E2 | E,
+        A & {
+            [K in N]: B;
+        }
+    > {
+        return this.chain((a) =>
+            f(a).continue((res) => ({ ...a, [name]: res } as any))
+        ) as any;
+    }
+
+    public addProp = this.bind;
+
     /// END COMPOSITION
 
     //// CREATION
@@ -371,7 +389,7 @@ export class Tug<in out S, out R, out E, out A> {
             let newState = state;
             let checks = [...checksOfKnownErrors];
             const context = {
-                deps: (dependencies as any).__all,
+                deps: dependencies,
                 use: <T>(it: Tug<any, any, E, T>): Promise<T> =>
                     it
                         .rpe(dependencies, newState)
@@ -388,7 +406,6 @@ export class Tug<in out S, out R, out E, out A> {
                 setState: (it: S) => {
                     newState = it;
                 },
-                read: (_tag: Dependency<any>) => dependencies,
             };
 
             try {

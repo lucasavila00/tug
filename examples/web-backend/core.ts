@@ -27,7 +27,7 @@ export namespace Capacities {
 
     export interface DatabaseT {
         Database: {
-            db: () => Promise<DatabaseClient>;
+            getInstance: () => Promise<DatabaseClient>;
         };
     }
     export const Database = Dependency<DatabaseT>();
