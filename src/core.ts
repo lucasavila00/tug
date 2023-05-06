@@ -56,7 +56,7 @@ export class TugUncaughtException {
 }
 
 export type Dependency<R> = {
-    read: R;
+    read: () => R;
 };
 export const Dependency = <R>(): Dependency<R> => null as any;
 
@@ -64,12 +64,6 @@ export type TubBuiltBy<
     T extends TugBuilder<any, any, any>,
     A
 > = T extends TugBuilder<infer S, infer D, infer E> ? Tug<S, D, E, A> : never;
-
-type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
-    k: infer I
-) => void
-    ? I
-    : never;
 
 type UsedTug<E, R2, S2, T> = [R2] extends [never]
     ? Tug<S2, R2, E, T>
@@ -83,7 +77,7 @@ type UsedTug<E, R2, S2, T> = [R2] extends [never]
 /**
  * Adds the `use` function to the context.
  */
-export type CreateContext<S, R, E> = UnionToIntersection<R> & {
+export type CreateContext<in out S, out R, out E> = {
     /**
      * Transforms a `tug` into a plain promise.
      * Returns a successful promise if the `tug` succeeds,
@@ -96,6 +90,8 @@ export type CreateContext<S, R, E> = UnionToIntersection<R> & {
             ? UsedTug<E2, R2, S2, T>
             : CompileError<["invalid state"]>
     ) => Promise<T>;
+
+    read: <R2 extends R>(it: Dependency<R2>) => R2;
 
     readState: S extends void ? CompileError<["not stateful"]> : () => S;
     setState: S extends void ? CompileError<["not stateful"]> : (it: S) => void;
@@ -271,25 +267,25 @@ export class Tug<in out S, out R, out E, out A> {
     /// END DI
 
     //// COMPOSITION
-    public thenn<B>(
-        f: (a: A, ctx: CreateContext<S, R, E>) => B | Promise<B>
-    ): Tug<S, R, E, B> {
+    public thenn<B, E2 extends E>(
+        f: (a: A, ctx: CreateContext<S, R, E2>) => B | Promise<B>
+    ): Tug<S, R, E2, B> {
         return new Tug(
             chainRpe(this.rpe, (a, checks) =>
-                Tug.TugRpe<S, R, E, B>((ctx) => f(a, ctx), checks)
+                Tug.TugRpe<S, R, E, B>((ctx) => f(a, ctx as any), checks)
             )
         );
     }
 
-    public flatMap<B, R2>(
-        f: (a: A) => Tug<S, R2, E, B>
-    ): Tug<S, R2 | R, E | E, B> {
+    public flatMap<B, R2, E2 extends E>(
+        f: (a: A) => Tug<S, R2, E2, B>
+    ): Tug<S, R2 | R, E2, B> {
         return new Tug(chainRpe(this.rpe, (a) => f(a).rpe as any)) as any;
     }
 
     public chain = this.flatMap;
 
-    public or<A>(f: (e: E) => A): Tug<S, R, never, A> {
+    public or<A, E2 extends E>(f: (e: E2) => A): Tug<S, R, never, A> {
         return new Tug((deps, state) =>
             this.rpe(deps, state).then(([checks, either]) => {
                 if (either._tag === "Right") {
@@ -307,7 +303,7 @@ export class Tug<in out S, out R, out E, out A> {
         );
     }
 
-    public mapLeft<E2>(f: (e: E) => E2): Tug<S, R, E2, A> {
+    public mapLeft<E2, E3 extends E>(f: (e: E3) => E2): Tug<S, R, E2, A> {
         return new Tug((deps, state) =>
             this.rpe(deps, state).then(([checks, either]) => {
                 if (either._tag === "Right") {
@@ -325,20 +321,20 @@ export class Tug<in out S, out R, out E, out A> {
         );
     }
 
-    public fold<B>(
-        onLeft: (e: E) => Tug<S, R, E, B>,
-        onRight: (a: A) => Tug<S, R, E, B>
-    ): Tug<S, R, E, B> {
+    public fold<B, E2>(
+        onLeft: (e: E2) => Tug<S, R, E2, B>,
+        onRight: (a: A) => Tug<S, R, E2, B>
+    ): Tug<S, R, E2, B> {
         return new Tug((deps, state) =>
-            this.rpe(deps, state).then(([checks, either]) => {
+            this.rpe(deps, state).then(([_, either]) => {
                 if (either._tag === "Right") {
                     return onRight(either.right[1])
                         .rpe(deps, either.right[0])
-                        .then((it) => [mergeChecks(checks, it[0]), it[1]]);
+                        .then((it) => [mergeChecks([], it[0]), it[1]]);
                 } else {
                     return onLeft(either.left)
                         .rpe(deps, state)
-                        .then((it) => [mergeChecks(checks, it[0]), it[1]]);
+                        .then((it) => [mergeChecks([], it[0]), it[1]]);
                 }
             })
         );
