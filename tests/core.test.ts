@@ -1,5 +1,5 @@
 import { expect, test } from "@jest/globals";
-import { Dependency, TugBuilder, Tug, TugException } from "../src/core";
+import { Dependency, TugBuilder, Tug, TugUncaughtException } from "../src/core";
 
 // eslint-disable-next-line @typescript-eslint/no-inferrable-types
 const FALSE: boolean = false;
@@ -18,7 +18,7 @@ test("resolves", async () => {
         count: number;
     };
     const DDep = Dependency<D>();
-    const tug31: Tug<D, TugException, number> = TugBuilder.of(3);
+    const tug31: Tug<void, D, TugUncaughtException, number> = TugBuilder.of(3);
     const v31 = await tug31.provide(DDep, { count: 1 }).execOrThrow();
     expect(v31).toBe(3);
 
@@ -33,7 +33,7 @@ test("catches", async () => {
     expect(v0).toMatchInlineSnapshot(`
         {
           "_tag": "Left",
-          "left": TugException {
+          "left": TugUncaughtException {
             "content": [Error: ...],
           },
         }
@@ -45,7 +45,7 @@ test("catches", async () => {
     expect(v1).toMatchInlineSnapshot(`
         {
           "_tag": "Left",
-          "left": TugException {
+          "left": TugUncaughtException {
             "content": [Error: ...],
           },
         }
@@ -57,7 +57,7 @@ test("catches", async () => {
     expect(v2).toMatchInlineSnapshot(`
         {
           "_tag": "Left",
-          "left": TugException {
+          "left": TugUncaughtException {
             "content": [Error: ...],
           },
         }
@@ -82,11 +82,7 @@ test("exec", async () => {
         expect(1).toBe(2);
     } catch (e) {
         // eslint-disable-next-line jest/no-conditional-expect
-        expect(e).toMatchInlineSnapshot(`
-            TugException {
-              "content": [Error: ...],
-            }
-        `);
+        expect(e).toMatchInlineSnapshot(`[Error: ...]`);
     }
 
     const v2 = await TugBuilder(async () => 2).execOrThrow();
@@ -117,7 +113,7 @@ test("execEither", async () => {
     expect(v1).toMatchInlineSnapshot(`
         {
           "_tag": "Left",
-          "left": TugException {
+          "left": TugUncaughtException {
             "content": [Error: ...],
           },
         }
@@ -428,6 +424,35 @@ test("chain", async () => {
     expect(v1).toBe("1");
 });
 
+test("stateful", async () => {
+    const v1 = await TugBuilder.stateful<string>()(() => 1)
+        .chain((it) => TugBuilder.of(String(it)))
+        .execOrThrow("asd");
+    expect(v1).toBe("1");
+
+    const v2 = await TugBuilder.stateful<string>()(() => 1)
+        .chain((it) => TugBuilder.stateful<string>().of(String(it)))
+        .execOrThrow("asd");
+    expect(v2).toBe("1");
+
+    TugBuilder.stateful<string>()(() => 1)
+        .chain((it) => TugBuilder.stateful<number>().of(String(it)))
+        //@ts-expect-error
+        .execOrThrow("asd");
+});
+
+test("stateful2", async () => {
+    const v1 = await TugBuilder.stateful<string>()((ctx) =>
+        ctx.readState()
+    ).execOrThrow("asd");
+    expect(v1).toBe("asd");
+
+    const v2 = await TugBuilder.stateful<string>()((ctx) => ctx.setState("def"))
+        .thenn((_it, ctx) => ctx.readState())
+        .execOrThrow("asd");
+    expect(v2).toBe("def");
+});
+
 test("exec safe", async () => {
     const v1 = await TugBuilder(() => 1)
         .chain((it) => TugBuilder.of(String(it)))
@@ -438,6 +463,44 @@ test("exec safe", async () => {
     expect(v1).toBe("1");
 });
 
+test("map left", async () => {
+    const v1 = await TugBuilder.throws((it): it is "a" => it === "a")
+        .of("x")
+        .thenn(() => {
+            throw "a";
+        })
+        .mapLeft((_it) => "b" as const)
+        .execEither();
+    expect(v1).toMatchInlineSnapshot(`
+        {
+          "_tag": "Left",
+          "right": "b",
+        }
+    `);
+});
+test("fold", async () => {
+    const v1 = await TugBuilder.throws((it): it is "a" => it === "a")
+        .of("x")
+        .thenn(() => {
+            throw "a";
+        })
+        .fold(
+            (_it) => TugBuilder.of(1),
+            (_it) => TugBuilder.of(123)
+        )
+        .thenn(() => {
+            throw "b";
+        })
+        .execEither();
+    expect(v1).toMatchInlineSnapshot(`
+        {
+          "_tag": "Left",
+          "left": TugUncaughtException {
+            "content": "b",
+          },
+        }
+    `);
+});
 test("chain left 2", async () => {
     const v1 = await TugBuilder.throws((it): it is "a" => it === "a")
         .of("x")
@@ -463,12 +526,12 @@ test("chain left 2", async () => {
         })
         .execEither();
     expect(v2).toMatchInlineSnapshot(`
-            {
-              "_tag": "Left",
-              "left": TugException {
-                "content": "b",
-              },
-            }
+        {
+          "_tag": "Left",
+          "left": TugUncaughtException {
+            "content": "b",
+          },
+        }
     `);
 });
 test("chain left", async () => {
@@ -514,4 +577,18 @@ test("chain left", async () => {
           "left": MyError {},
         }
     `);
+});
+
+test("or", async () => {
+    const v1 = await TugBuilder.of(1)
+        .or(() => 2)
+        .execOrThrow();
+    expect(v1).toBe(1);
+
+    const v2 = await TugBuilder(() => {
+        throw 1;
+    })
+        .or((_e) => 2)
+        .execOrThrow();
+    expect(v2).toBe(2);
 });
