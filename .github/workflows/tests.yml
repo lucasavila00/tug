@@ -12,6 +12,7 @@ jobs:
           registry-url: "https://registry.npmjs.org"
       - name: Tests
         run: |
+          cd packages/tug-ts
           npm ci
           npm run static
           npm run test -- --collectCoverage

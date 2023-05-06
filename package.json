@@ -1,38 +1,12 @@
 {
-  "name": "tug-ts",
+  "name": "tug",
   "version": "1.0.0",
   "description": "",
-  "main": "lib/core.js",
-  "module": "es6/core.js",
-  "typings": "lib/core.d.ts",
+  "main": "index.js",
   "scripts": {
-    "test": "jest",
-    "ts": "tsc --noEmit",
-    "build": "rm -rf dist && tsc -p ./tsconfig.build.json && tsc -p ./tsconfig.build-es6.json && ts-node scripts/build",
-    "prepublishOnly": "ts-node scripts/pre-publish",
-    "release": "ts-node scripts/release",
-    "prettier": "prettier --check \"{src,scripts,tests,examples}/**/*.{js,jsx,ts,tsx,json,css,md}\"",
-    "prettier-update": "prettier --write \"{src,scripts,tests,examples}/**/*.{js,jsx,ts,tsx,json,css,md}\"",
-    "static": "npm run prettier && npm run lint && npm run ts",
-    "lint": "eslint src"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "Lucas Ávila",
-  "license": "MIT",
-  "devDependencies": {
-    "@jest/globals": "^29.5.0",
-    "@types/glob": "^7.2.0",
-    "@typescript-eslint/eslint-plugin": "^5.59.2",
-    "@typescript-eslint/parser": "^5.30.0",
-    "eslint": "^8.39.0",
-    "eslint-config-prettier": "^8.5.0",
-    "eslint-plugin-jest": "^26.5.3",
-    "fp-ts": "^2.14.0",
-    "glob": "^8.1.0",
-    "jest": "^29.5.0",
-    "prettier": "^2.8.8",
-    "ts-jest": "^29.1.0",
-    "ts-node": "^10.9.1",
-    "typescript": "^5.0.4"
-  }
+  "author": "",
+  "license": "ISC"
 }
