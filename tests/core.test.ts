@@ -441,8 +441,11 @@ test("exec safe", async () => {
 test("chain left 2", async () => {
     const v1 = await TugBuilder.throws((it): it is "a" => it === "a")
         .of("x")
-
-        .thenn((_it) => {
+        .thenn(async (_it, ctx) => {
+            ctx.use(
+                //@ts-expect-error
+                TugBuilder.throws((it): it is "b" => it === "b").left("b")
+            );
             throw "a";
         })
         .execEither();
@@ -455,7 +458,6 @@ test("chain left 2", async () => {
 
     const v2 = await TugBuilder.throws((it): it is "a" => it === "a")
         .of("x")
-
         .thenn((_it) => {
             throw "b";
         })

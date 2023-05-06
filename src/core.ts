@@ -82,11 +82,10 @@ type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
     ? I
     : never;
 
-type TODO_Error = any;
 /**
  * Adds the `use` function to the context.
  */
-export type CreateContext<R> = UnionToIntersection<R> & {
+export type CreateContext<R, E> = UnionToIntersection<R> & {
     /**
      * Transforms a `tug` into a plain promise.
      * Returns a successful promise if the `tug` succeeds,
@@ -94,9 +93,9 @@ export type CreateContext<R> = UnionToIntersection<R> & {
      */
     use: <R2, T>(
         it: [R2] extends [never]
-            ? Tug<R2, TODO_Error, T>
+            ? Tug<R2, E, T>
             : [R2] extends [R]
-            ? Tug<R2, TODO_Error, T>
+            ? Tug<R2, E, T>
             : CompileError<
                   [
                       "child-tug uses dependency that was not annotated in parent-tug"
@@ -112,7 +111,7 @@ export type CreateContext<R> = UnionToIntersection<R> & {
  * If the callback throws an error or returns a rejected promise, the `tug` value will be an error.
  * If the callback returns a value or promise of a value, the `tug` value will be of that value.
  */
-export type TugCallback<R, A> = (ctx: CreateContext<R>) => Promise<A> | A;
+export type TugCallback<R, E, A> = (ctx: CreateContext<R, E>) => Promise<A> | A;
 
 const unwrapEither = <E, A>(e: Either<E, A>): A => {
     if (e._tag === "Right") {
@@ -166,6 +165,10 @@ export class Tug<R, E, A> {
     ) {
         this.rpe = rpe;
         this.checksOfKnownErrors = checksOfKnownErrors;
+
+        if (false) {
+            console.error("throws here");
+        }
     }
 
     //// DI
@@ -216,7 +219,7 @@ export class Tug<R, E, A> {
 
     //// COMPOSITION
     public thenn<B>(
-        f: (a: A, ctx: CreateContext<R>) => B | Promise<B>
+        f: (a: A, ctx: CreateContext<R, E>) => B | Promise<B>
     ): Tug<R, E, B> {
         return new Tug(
             chainRpe(this.rpe, (a) =>
@@ -243,7 +246,7 @@ export class Tug<R, E, A> {
     //// CREATION
     private static TugRpe =
         <R, E, A>(
-            cb: TugCallback<R, A>,
+            cb: TugCallback<R, E, A>,
             checksOfKnownErrors: CheckOfKnownError[]
         ): TugRpe<R, E, A> =>
         async (dependencies: R) => {
@@ -282,7 +285,7 @@ export class Tug<R, E, A> {
         };
 
     static newTug = <R, E, A>(
-        cb: TugCallback<R, A>,
+        cb: TugCallback<R, E, A>,
         checksOfKnownErrors: CheckOfKnownError[]
     ): Tug<R, E, A> =>
         new Tug(Tug.TugRpe(cb, checksOfKnownErrors), checksOfKnownErrors);
@@ -310,7 +313,7 @@ export interface TugBuilder<R0, E> {
      *
      * The callback is passed a context object, which contains the dependencies of the `tug`, and the `use` function.
      */
-    <A>(cb: TugCallback<R0, A>): Tug<R0, E, A>;
+    <A>(cb: TugCallback<R0, E, A>): Tug<R0, E, A>;
 
     /**
      * Constructs a new `tug` instance, with the given value as the result.
