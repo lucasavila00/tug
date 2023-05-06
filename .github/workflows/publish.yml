@@ -8,17 +8,13 @@ jobs:
         steps:
             - uses: actions/checkout@v3
             # Setup .npmrc file to publish to npm
-            - name: Install Node.js
-                uses: actions/setup-node@v3
-                with:
-                node-version: 18
-
             - uses: pnpm/action-setup@v2
-                name: Install pnpm
-                id: pnpm-install
-                with:
-                version: 7
-                run_install: false
+              with:
+                  version: 7
+            - uses: actions/setup-node@v3
+              with:
+                  node-version: "18.x"
+                  registry-url: "https://registry.npmjs.org"
             - name: Publish
               env:
                   NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
