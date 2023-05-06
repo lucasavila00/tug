@@ -1,5 +1,11 @@
 import { expect, test } from "@jest/globals";
-import { Dependency, TugBuilder, Tug, TugUncaughtException } from "../src/core";
+import {
+    Dependency,
+    TugBuilder,
+    Tug,
+    TugUncaughtException,
+    TubBuiltBy,
+} from "../src/core";
 
 // eslint-disable-next-line @typescript-eslint/no-inferrable-types
 const FALSE: boolean = false;
@@ -157,10 +163,22 @@ test("same ctx", async () => {
 
     const z = DTug(async (ctx) => ctx.count * 2);
 
-    const x = DTug(async (ctx) => {
+    type E = {
+        count2: number;
+    };
+    const EDep = Dependency<E>();
+
+    const ETug = DTug.depends(EDep);
+
+    type ETugItem<T> = TubBuiltBy<typeof ETug, T>;
+
+    const w: ETugItem<number> = DTug(async (_ctx) => 1);
+
+    const x = ETug(async (ctx) => {
         const a = await ctx.use(y);
         const b = await ctx.use(z);
-        return a + b;
+        const c = await ctx.use(w);
+        return a + b + c;
     });
 
     if (FALSE) {
@@ -173,6 +191,9 @@ test("same ctx", async () => {
         await x
             .provide(DDep, {
                 count: 1,
+            })
+            .provide(EDep, {
+                count2: 1,
             })
             .execOrThrow()
     ).toBe(3);

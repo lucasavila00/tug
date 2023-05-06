@@ -71,16 +71,15 @@ type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
     ? I
     : never;
 
-type UsedTug<R, E, R2, S2, T> = [R2] extends [never]
+type UsedTug<E, R2, S2, T> = [R2] extends [never]
     ? Tug<S2, R2, E, T>
-    : [R2] extends [R]
+    : [R2] extends [R2]
     ? Tug<S2, R2, E, T>
     : CompileError<
           [
               "not a tug, or child-tug uses dependency that was not annotated in parent-tug"
           ]
       >;
-
 /**
  * Adds the `use` function to the context.
  */
@@ -90,11 +89,11 @@ export type CreateContext<S, R, E> = UnionToIntersection<R> & {
      * Returns a successful promise if the `tug` succeeds,
      * or a rejected promise if the `tug` fails.
      */
-    use: <R2, S2, T>(
+    use: <R2 extends R, E2 extends E, S2, T>(
         it: S2 extends void
-            ? UsedTug<R, E, R2, S2, T>
+            ? UsedTug<E2, R2, S2, T>
             : S2 extends S
-            ? UsedTug<R, E, R2, S2, T>
+            ? UsedTug<E2, R2, S2, T>
             : CompileError<["invalid state"]>
     ) => Promise<T>;
 
@@ -187,10 +186,13 @@ export type tugReturns<T extends Tug<any, any, any, any>> = T extends Tug<
 /**
  * The `tug` instance.
  */
-export class Tug<S, R, E, A> {
-    private readonly rpe: TugSRPE<S, R, E, A>;
+export class Tug<in out S, out R, out E, out A> {
+    private readonly __rpe: any;
     private constructor(rpe: TugSRPE<S, R, E, A>) {
-        this.rpe = rpe;
+        this.__rpe = rpe;
+    }
+    private get rpe(): TugSRPE<S, any, any, A> {
+        return this.__rpe;
     }
 
     //// DI
