@@ -1,12 +1,5 @@
 import { expect, test } from "@jest/globals";
-import {
-    Dependency,
-    TugBuilder,
-    Tug,
-    TugUncaughtException,
-    TugBuiltBy,
-    isTugUncaughtException,
-} from "../src/core";
+import { Dependency, TugBuilder, Tug, TugBuiltBy } from "../src/core";
 
 // eslint-disable-next-line @typescript-eslint/no-inferrable-types
 const FALSE: boolean = false;
@@ -25,7 +18,7 @@ test("resolves", async () => {
         count: number;
     };
     const DDep = Dependency<D>();
-    const tug31: Tug<void, D, TugUncaughtException, number> = TugBuilder.of(3);
+    const tug31: Tug<void, D, number> = TugBuilder.of(3);
     const v31 = await tug31.provide(DDep, { count: 1 }).exec.orThrow();
     expect(v31).toBe(3);
 
@@ -40,9 +33,7 @@ test("catches", async () => {
     expect(v0).toMatchInlineSnapshot(`
         {
           "_tag": "Left",
-          "left": TugUncaughtException {
-            "content": [Error: ...],
-          },
+          "left": [Error: ...],
         }
     `);
 
@@ -52,9 +43,7 @@ test("catches", async () => {
     expect(v1).toMatchInlineSnapshot(`
         {
           "_tag": "Left",
-          "left": TugUncaughtException {
-            "content": [Error: ...],
-          },
+          "left": [Error: ...],
         }
     `);
 
@@ -64,15 +53,11 @@ test("catches", async () => {
     expect(v2).toMatchInlineSnapshot(`
         {
           "_tag": "Left",
-          "left": TugUncaughtException {
-            "content": [Error: ...],
-          },
+          "left": [Error: ...],
         }
     `);
 
-    const v3 = await TugBuilder.throws((it): it is Error => it instanceof Error)
-        .left(new Error("..."))
-        .exec.either();
+    const v3 = await TugBuilder.left(new Error("...")).exec.either();
     expect(v3).toMatchInlineSnapshot(`
         {
           "_tag": "Left",
@@ -96,6 +81,22 @@ test("exec", async () => {
     expect(v2).toBe(2);
 });
 
+test("catch", async () => {
+    const v1 = await TugBuilder.of(123)
+        .try(() => {
+            throw new Error("...");
+            return 123;
+        })
+        .catch(() => 456)
+        .exec.either();
+
+    expect(v1).toMatchInlineSnapshot(`
+        {
+          "_tag": "Right",
+          "right": 456,
+        }
+    `);
+});
 test("execEither", async () => {
     const v1 = await TugBuilder.try(() => {
         throw new Error("...");
@@ -104,9 +105,7 @@ test("execEither", async () => {
     expect(v1).toMatchInlineSnapshot(`
         {
           "_tag": "Left",
-          "left": TugUncaughtException {
-            "content": [Error: ...],
-          },
+          "left": [Error: ...],
         }
     `);
 
@@ -192,7 +191,7 @@ test("same ctx", async () => {
     };
     const FDep = Dependency<F>();
 
-    const FTug = DTug.depends(FDep);
+    const FTug = ETug.depends(FDep);
 
     type FTugItem<T> = TugBuiltBy<typeof FTug, T>;
 
@@ -447,20 +446,6 @@ test("chain widening deps", async () => {
     ).toBe(4);
 });
 
-test("chain widening error", async () => {
-    const y = TugBuilder.throws((it): it is "a" => it === "a").try((_ctx) => {
-        return true;
-    });
-
-    const z = TugBuilder.throws((it): it is "b" => it === "b").try(
-        async (_ctx) => 2
-    );
-
-    const ab = y.chain((it) => (it ? z : TugBuilder.of(1)));
-
-    expect(await ab.exec.orThrow()).toBe(2);
-});
-
 test("different ctx + provide", async () => {
     type D1 = {
         count1: number;
@@ -588,159 +573,23 @@ test("stateful2", async () => {
 test("exec safe", async () => {
     const v1 = await TugBuilder.try(() => 1)
         .chain((it) => TugBuilder.of(String(it)))
-        .or((_err) => {
-            return "";
-        })
-        .exec.safe();
+        .exec.safe((_err) => {
+            return "a" as const;
+        });
     expect(v1).toBe("1");
-});
 
-test("map left", async () => {
-    const v1 = await TugBuilder.throws((it): it is "a" => it === "a")
-        .of("x")
+    const v2 = await TugBuilder.of("a")
         .try(() => {
-            throw "a";
+            // eslint-disable-next-line no-constant-condition
+            if (true) {
+                throw 1;
+            }
+            return "a";
         })
-        .throws((it): it is "b" => it === "b")
-        .fold(
-            (_it) => TugBuilder.throws((it): it is "b" => it === "b").left("b"),
-            (it) => TugBuilder.of(it)
-        )
-        .exec.either();
-    expect(v1).toMatchInlineSnapshot(`
-        {
-          "_tag": "Left",
-          "left": "b",
-        }
-    `);
-});
-
-test("map left 2", async () => {
-    const v1 = await TugBuilder.of("x")
-        .throws((it): it is "b" => it === "b")
-        .fold(
-            (_it) => TugBuilder.throws((it): it is "b" => it === "b").left("b"),
-            (it) => TugBuilder.of(it)
-        )
-        .exec.either();
-    expect(v1).toMatchInlineSnapshot(`
-        {
-          "_tag": "Right",
-          "right": "x",
-        }
-    `);
-});
-test("fold", async () => {
-    const v1 = await TugBuilder.throws((it): it is "a" => it === "a")
-        .of("x")
-        .try(() => {
-            throw "a";
-        })
-        .fold(
-            (_it) => TugBuilder.of(1),
-            (_it) => TugBuilder.of(123)
-        )
-        .try(() => {
-            throw "a";
-        })
-        .exec.either();
-    expect(v1).toMatchInlineSnapshot(`
-        {
-          "_tag": "Left",
-          "left": "a",
-        }
-    `);
-});
-test("thenn throws", async () => {
-    const v1 = await TugBuilder.throws((it): it is "a" => it === "a")
-        .of("x")
-        .try(async (_it, ctx) => {
-            ctx.use(
-                //@ts-expect-error
-                TugBuilder.throws((it): it is "b" => it === "b").left("b")
-            );
-            throw "a";
-        })
-        .exec.either();
-    expect(v1).toMatchInlineSnapshot(`
-        {
-          "_tag": "Left",
-          "left": "a",
-        }
-    `);
-});
-test("chain left 2", async () => {
-    const v2 = await TugBuilder.throws((it): it is "a" => it === "a")
-        .of("x")
-        .try((_it) => {
-            throw "b";
-        })
-        .exec.either();
-    expect(v2).toMatchInlineSnapshot(`
-        {
-          "_tag": "Left",
-          "left": TugUncaughtException {
-            "content": "b",
-          },
-        }
-    `);
-});
-test("chain left", async () => {
-    class MyError {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        //@ts-ignore
-        __tag: "MyError";
-    }
-
-    const v1 = await TugBuilder.throws((it): it is "a" => it === "a")
-        .of("a")
-        .chain((_it) =>
-            TugBuilder.throws((it): it is "a" => it === "a").left("a")
-        )
-        .exec.either();
-
-    expect(v1).toMatchInlineSnapshot(`
-        {
-          "_tag": "Left",
-          "left": "a",
-        }
-    `);
-
-    class OtherError {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        //@ts-ignore
-        __tag: "OtherError";
-    }
-
-    // @ts-expect-error
-    TugBuilder.throws(MyError).left(new OtherError("a"));
-
-    const v2 = await TugBuilder
-        //@ts-expect-error
-        .left(new MyError("a"))
-        .chain((it) => TugBuilder.of(String(it)))
-        .exec.either();
-
-    expect(v2).toMatchInlineSnapshot(`
-        {
-          "_tag": "Left",
-          "left": MyError {},
-        }
-    `);
-});
-
-test("or", async () => {
-    const v1 = await TugBuilder.of(1)
-        .or(() => 2)
-        .exec.orThrow();
-    expect(v1).toBe(1);
-
-    const v2 = await TugBuilder.try(() => {
-        throw 1;
-    })
-        .or((_e) => 2)
-        .exec.orThrow();
-    expect(v2).toBe(2);
+        .exec.safe((_err) => {
+            return "a" as const;
+        });
+    expect(v2).toBe("a");
 });
 
 test("add property", async () => {
@@ -758,17 +607,3 @@ test("add property", async () => {
         }
     `);
 });
-// test("catch", async () => {
-//     const v2 = await TugBuilder.of({})
-//         .catch(isTugUncaughtException, (e) => TugBuilder.of(1))
-//         .exec.either();
-//     expect(v2).toMatchInlineSnapshot(`
-//         {
-//           "_tag": "Right",
-//           "right": {
-//             "a": 1,
-//             "b": 2,
-//           },
-//         }
-//     `);
-// });
