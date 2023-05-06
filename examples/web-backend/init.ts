@@ -19,7 +19,7 @@ export const start = async () => {
     const handled = await connectedApp
         .deleteOrder("123")
         .provide(Capacities.UserContext, null as any)
-        .exec();
+        .execOrThrow();
 
     // const deleteOrder = handlers.deleteOrder;
 

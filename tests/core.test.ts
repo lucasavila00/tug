@@ -425,6 +425,30 @@ test("chain", async () => {
 });
 
 test("stateful", async () => {
+    const v0 = TugBuilder.stateful<string>()((ctx) => ctx.readState())
+        .chain((it) => TugBuilder.of(String(it)))
+        .provideState("asd");
+
+    expect(await v0.execOrThrow()).toBe("asd");
+
+    const v01 = await TugBuilder.stateful<string>()((ctx) => ctx.readState())
+        .thenn(async (it, ctx) => it + (await ctx.use(v0)))
+        .provideState("def")
+        .execOrThrow();
+    expect(v01).toBe("defasd");
+
+    const v10 = TugBuilder.stateful<string>()((ctx) => ctx.readState()).chain(
+        (it) => TugBuilder.of(String(it))
+    );
+
+    expect(await v10.execOrThrow("asd")).toBe("asd");
+
+    const v101 = await TugBuilder.stateful<string>()((ctx) => ctx.readState())
+        .thenn(async (it, ctx) => it + (await ctx.use(v10)))
+        .provideState("xx")
+        .execOrThrow();
+    expect(v101).toBe("xxxx");
+
     const v1 = await TugBuilder.stateful<string>()(() => 1)
         .chain((it) => TugBuilder.of(String(it)))
         .execOrThrow("asd");
@@ -478,6 +502,18 @@ test("map left", async () => {
         }
     `);
 });
+
+test("map left 2", async () => {
+    const v1 = await TugBuilder.of("x")
+        .mapLeft((_it) => "b" as const)
+        .execEither();
+    expect(v1).toMatchInlineSnapshot(`
+        {
+          "_tag": "Right",
+          "right": "x",
+        }
+    `);
+});
 test("fold", async () => {
     const v1 = await TugBuilder.throws((it): it is "a" => it === "a")
         .of("x")
@@ -501,7 +537,7 @@ test("fold", async () => {
         }
     `);
 });
-test("chain left 2", async () => {
+test("thenn throws", async () => {
     const v1 = await TugBuilder.throws((it): it is "a" => it === "a")
         .of("x")
         .thenn(async (_it, ctx) => {
@@ -518,7 +554,8 @@ test("chain left 2", async () => {
           "left": "a",
         }
     `);
-
+});
+test("chain left 2", async () => {
     const v2 = await TugBuilder.throws((it): it is "a" => it === "a")
         .of("x")
         .thenn((_it) => {
@@ -542,7 +579,6 @@ test("chain left", async () => {
     }
 
     const v1 = await TugBuilder.throws((it): it is "a" => it === "a")
-        .throws((it): it is "b" => it === "b")
         .of("a")
         .chain((_it) =>
             TugBuilder.throws((it): it is "b" => it === "b").left("b")
