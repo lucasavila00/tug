@@ -1,4 +1,4 @@
-import { Dependency } from "../../../src/core";
+import { Dependency } from "tug-ts";
 import { OrderModuleTug } from "./core";
 
 export interface OrderModuleT {

@@ -2,9 +2,9 @@
   "name": "tug-ts",
   "version": "1.0.0",
   "description": "",
-  "main": "lib/core.js",
-  "module": "es6/core.js",
-  "typings": "lib/core.d.ts",
+  "main": "dist/lib/core.js",
+  "module": "dist/es6/core.js",
+  "typings": "dist/lib/core.d.ts",
   "scripts": {
     "test": "jest",
     "ts": "tsc --noEmit",

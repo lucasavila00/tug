@@ -1,4 +1,4 @@
-import { Dependency } from "../../../src/core";
+import { Dependency } from "tug-ts";
 import { AuthModuleTug } from "./core";
 
 export interface AuthModuleT {

@@ -28,6 +28,10 @@ export const copyPackageJson: Build<void> = (C) =>
             delete clone.files;
             delete clone.devDependencies;
 
+            clone["main"] = "lib/core.js";
+            clone["module"] = "es6/core.js";
+            clone["typings"] = "lib/core.d.ts";
+
             clone.version = version;
 
             return clone;
@@ -47,8 +51,11 @@ export const FILES: ReadonlyArray<string> = [
 ];
 
 export const copyFiles: Build<ReadonlyArray<void>> = (C) =>
-    A.readonlyArray.traverse(TE.taskEither)(FILES, (from) =>
-        C.copyFile(from, path.resolve(OUTPUT_FOLDER, from))
+    A.readonlyArray.traverse(TE.taskEither)(FILES, (fileName) =>
+        C.copyFile(
+            path.resolve("../../", fileName),
+            path.resolve(OUTPUT_FOLDER, fileName)
+        )
     );
 
 const traverse = A.readonlyArray.traverse(TE.taskEither);

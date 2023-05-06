@@ -1,4 +1,4 @@
-import { TugBuilder } from "../../../src/core";
+import { TugBuilder } from "tug-ts";
 import { Capacities } from "../core";
 import { OrderData } from "./types";
 

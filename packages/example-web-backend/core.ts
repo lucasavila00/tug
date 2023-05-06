@@ -1,4 +1,4 @@
-import { Dependency, TugBuilder } from "../../src/core";
+import { Dependency, TugBuilder } from "tug-ts";
 
 // start database mock
 

@@ -5,6 +5,12 @@ importers:
   .:
     specifiers: {}
 
+  packages/example-web-backend:
+    specifiers:
+      tug-ts: workspace:^1.0.0
+    dependencies:
+      tug-ts: link:../tug-ts
+
   packages/tug-ts:
     specifiers:
       '@jest/globals': ^29.5.0

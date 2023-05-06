@@ -6,7 +6,7 @@ import { OrderModuleTug } from "./order/core";
 import { UserModuleTug } from "./user/core";
 import { UserModule } from "./user";
 import { AuthModuleTug } from "./auth/core";
-import { callbacks } from "../../src/callbacks";
+import { callbacks } from "tug-ts/dist/callbacks";
 
 export const start = async () => {
     const connectedApp = callbacks(app)
