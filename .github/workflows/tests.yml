@@ -16,8 +16,8 @@ jobs:
             - name: Tests
               run: |
                   pnpm install
+                  (cd packages/tug-ts && pnpm run build 0.0.0)
                   pnpm run ts
-                  pnpm run build 0.0.0
                   cd packages/tug-ts
                   npm run static
                   npm run test -- --collectCoverage
