@@ -5,7 +5,7 @@ import { OrderData } from "./types";
 const OrderTug = TugBuilder.depends(Capacities.Database);
 
 const getOrdersByUserId = (userId: string) =>
-    OrderTug(async (ctx) => {
+    OrderTug.try(async (ctx) => {
         const db = await ctx.deps.Database.getInstance();
         const orders = await db
             .collection<OrderData>("orders")
@@ -14,14 +14,14 @@ const getOrdersByUserId = (userId: string) =>
     });
 
 const getAllOrders = () =>
-    OrderTug(async (ctx) => {
+    OrderTug.try(async (ctx) => {
         const db = await ctx.deps.Database.getInstance();
         const orders = await db.collection<OrderData>("orders").findMany();
         return orders;
     });
 
 const getOrderById = (id: string) =>
-    OrderTug(async (ctx) => {
+    OrderTug.try(async (ctx) => {
         const db = await ctx.deps.Database.getInstance();
         const order = await db.collection<OrderData>("orders").findOne({ id });
         if (order == null) {
@@ -31,7 +31,7 @@ const getOrderById = (id: string) =>
     });
 
 const insertOrder = (order: OrderData) =>
-    OrderTug(async (ctx) => {
+    OrderTug.try(async (ctx) => {
         const db = await ctx.deps.Database.getInstance();
         const insertedOrder = await db
             .collection<OrderData>("orders")
@@ -40,7 +40,7 @@ const insertOrder = (order: OrderData) =>
     });
 
 const deleteOrder = (id: string) =>
-    OrderTug(async (ctx) => {
+    OrderTug.try(async (ctx) => {
         const db = await ctx.deps.Database.getInstance();
         const deletedOrder = await db
             .collection<OrderData>("orders")

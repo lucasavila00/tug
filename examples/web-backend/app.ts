@@ -8,7 +8,7 @@ const AppTug = AllCapacitiesTug.depends(AuthModule)
     .depends(UserModule);
 
 const canCurrentUserEditOrder = (orderId: string) =>
-    AppTug(async (ctx) => {
+    AppTug.try(async (ctx) => {
         const orderItem = await ctx.use(
             ctx.deps.OrderModule.getOrderById(orderId)
         );
@@ -17,7 +17,7 @@ const canCurrentUserEditOrder = (orderId: string) =>
     });
 
 export const deleteOrderHandler = (id: string) =>
-    AppTug(async (ctx) => {
+    AppTug.try(async (ctx) => {
         const canUserEditOrder = await ctx.use(canCurrentUserEditOrder(id));
 
         if (!canUserEditOrder) {

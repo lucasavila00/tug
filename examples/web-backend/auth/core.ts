@@ -5,7 +5,7 @@ import { UserModule } from "../user";
 const AuthTug = TugBuilder.depends(Capacities.UserContext).depends(UserModule);
 
 const getLoggedInUserId = () =>
-    AuthTug(async (ctx) => {
+    AuthTug.try(async (ctx) => {
         const userId = await ctx.deps.UserContext.currentUserId();
         if (userId == null) {
             throw new Error("User is not logged in");
@@ -14,9 +14,9 @@ const getLoggedInUserId = () =>
     });
 
 const getLoggedInUser = () =>
-    getLoggedInUserId()
-        .continue((userId, ctx) => ctx.deps.UserModule.getUserById(userId))
-        .chain((it) => it);
+    getLoggedInUserId().chain((userId, ctx) =>
+        ctx.deps.UserModule.getUserById(userId)
+    );
 
 export const AuthModuleTug = {
     getLoggedInUser,

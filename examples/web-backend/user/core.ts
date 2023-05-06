@@ -5,7 +5,7 @@ import { UserData } from "./types";
 const UserTug = TugBuilder.depends(Capacities.Database);
 
 const getUserById = (id: string) =>
-    UserTug(async (ctx) => {
+    UserTug.try(async (ctx) => {
         const db = await ctx.deps.Database.getInstance();
         const user = await db.collection<UserData>("users").findOne({ id });
         if (user == null) {
@@ -15,14 +15,14 @@ const getUserById = (id: string) =>
     });
 
 const getAllUsers = () =>
-    UserTug(async (ctx) => {
+    UserTug.try(async (ctx) => {
         const db = await ctx.deps.Database.getInstance();
         const users = await db.collection<UserData>("users").findMany();
         return users;
     });
 
 const insertUser = (user: UserData) =>
-    UserTug(async (ctx) => {
+    UserTug.try(async (ctx) => {
         const db = await ctx.deps.Database.getInstance();
         const insertedUser = await db
             .collection<UserData>("users")
