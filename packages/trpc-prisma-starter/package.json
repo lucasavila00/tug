@@ -23,7 +23,8 @@
     "test:e2e": "playwright test",
     "test-dev": "start-server-and-test dev http://127.0.0.1:3000 test",
     "test-start": "start-server-and-test start http://127.0.0.1:3000 test",
-    "postinstall": "pnpm generate"
+    "postinstall": "pnpm generate",
+    "ts": "tsc --noEmit"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -45,6 +46,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "superjson": "^1.7.4",
+    "tug-ts": "workspace:^1.0.0",
     "zod": "^3.0.0"
   },
   "devDependencies": {

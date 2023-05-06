@@ -1,18 +1,20 @@
 name: Tests
 on: [push]
 jobs:
-  tests:
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v3
-      # Setup .npmrc file to publish to npm
-      - uses: actions/setup-node@v3
-        with:
-          node-version: "14.x"
-          registry-url: "https://registry.npmjs.org"
-      - name: Tests
-        run: |
-          cd packages/tug-ts
-          npm ci
-          npm run static
-          npm run test -- --collectCoverage
+    tests:
+        runs-on: ubuntu-20.04
+        steps:
+            - uses: actions/checkout@v3
+            # Setup .npmrc file to publish to npm
+            - uses: actions/setup-node@v3
+              with:
+                  node-version: "14.x"
+                  registry-url: "https://registry.npmjs.org"
+            - name: Tests
+              run: |
+                  pnpm install
+                  pnpm run ts
+                  pnpm run build 0.0.0
+                  cd packages/tug-ts
+                  npm run static
+                  npm run test -- --collectCoverage
