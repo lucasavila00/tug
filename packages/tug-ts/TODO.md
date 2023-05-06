@@ -1,6 +1,7 @@
-- [ ] chainFirst (todo: verify fp-ts behaviour)
+- [ ] examples (kitchen sink, stateful)
 
 - [ ] callbacks API and tests
 
 - [ ] JTD
+
 - [ ] docs
