@@ -1,0 +1,19 @@
+// tsconfig.base.json
+{
+    "compilerOptions": {
+        "noEmit": true,
+        "declaration": true,
+        "esModuleInterop": true,
+        "module": "commonjs",
+        "noImplicitReturns": false,
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "noFallthroughCasesInSwitch": true,
+        "strict": true,
+        "target": "es5",
+        "moduleResolution": "node",
+        "forceConsistentCasingInFileNames": true,
+        "stripInternal": true,
+        "lib": ["es2015", "ESNext.BigInt"]
+    }
+}
