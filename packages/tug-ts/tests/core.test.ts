@@ -18,7 +18,7 @@ test("resolves", async () => {
         count: number;
     };
     const DDep = Dependency<D>();
-    const tug31: Tug<void, D, number> = TugBuilder.of(3);
+    const tug31: Tug<D, number> = TugBuilder.of(3);
     const v31 = await tug31.provide(DDep, { count: 1 }).exec.orThrow();
     expect(v31).toBe(3);
 

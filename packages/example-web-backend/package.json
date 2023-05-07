@@ -5,6 +5,7 @@
     "ts": "tsc --noEmit"
   },
   "dependencies": {
-    "tug-ts": "workspace:^1.0.0"
+    "tug-ts": "workspace:^1.0.0",
+    "typescript": "^5.0.4"
   }
 }

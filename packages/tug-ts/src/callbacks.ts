@@ -1,7 +1,7 @@
-import { Dependency, Tug, tugReads, tugReturns, tugState } from "./core";
+import { Dependency, Tug, TugReads, TugReturns } from "./core";
 
 type CallbackProvider<
-    RS extends Record<string, (...args: any) => Tug<any, any, any>>
+    RS extends Record<string, (...args: any) => Tug<any, any>>
 > = RS & {
     provide: <PROVIDING, PROVIDED_ARG extends PROVIDING>(
         tag: Dependency<PROVIDING>,
@@ -10,15 +10,14 @@ type CallbackProvider<
         [KEY in keyof RS]: (
             ...args: Parameters<RS[KEY]>
         ) => Tug<
-            tugState<ReturnType<RS[KEY]>>,
-            Exclude<tugReads<ReturnType<RS[KEY]>>, PROVIDING>,
-            tugReturns<ReturnType<RS[KEY]>>
+            Exclude<TugReads<ReturnType<RS[KEY]>>, PROVIDING>,
+            TugReturns<ReturnType<RS[KEY]>>
         >;
     }>;
 };
 
 export const callbacks = <
-    R extends Record<string, (...args: any) => Tug<any, any, any>>
+    R extends Record<string, (...args: any) => Tug<any, any>>
 >(
     cbs: R
 ): CallbackProvider<R> => ({
