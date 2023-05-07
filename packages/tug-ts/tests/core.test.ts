@@ -533,7 +533,7 @@ test("stateful", async () => {
 
     const v101 = await TugBuilder.stateful<string>()
         .try((ctx) => ctx.readState())
-        .try(async (it, ctx) => it + (await ctx.use(v10)))
+        .try(async (it, ctx) => it + (await ctx.unsafeUseStateful(v10)))
         .provideState("xx")
         .exec.orThrow();
     expect(v101).toBe("xxxx");

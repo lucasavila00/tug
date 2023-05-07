@@ -38,15 +38,6 @@ export type Either<E, A> = Left<E> | Right<A>;
 
 export type TugUncaughtException = unknown;
 
-/**
- * A reader function that reads R, and returns a Promise of Either<unknown, A>.
- * This is the core type of this library.
- */
-export type TugRPE<in out S, out A> = (
-    r: any,
-    s: S
-) => Promise<Either<TugUncaughtException, [S, A]>>;
-
 export type Dependency<R> = {
     read: () => R;
 };

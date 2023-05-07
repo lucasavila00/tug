@@ -1,4 +1,5 @@
-import { StatefulTug, StatefulTugBuilderC, Tug, TugBuilderC } from "./core";
+import { Tug, TugBuilderC } from "./core";
+import { StatefulTug, StatefulTugBuilderC } from "./stateful";
 
 export type StatefulTugState<T extends StatefulTug<any, any, any>> =
     T extends StatefulTug<infer S, any, any> ? S : never;
