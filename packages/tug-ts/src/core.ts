@@ -1,115 +1,43 @@
-interface CompileError<_ErrorMessageT extends any[]> {
-    /**
-     * There should never be a value of this type
-     */
-    readonly __compileError: never;
-}
+import { chainRpe, TugRpe, unwrapEither } from "./fp";
+import {
+    CompileError,
+    CompileErrorI,
+    Dependency,
+    Either,
+    TugRPE,
+    TugUncaughtException,
+    UnionToIntersection,
+} from "./types";
 
-interface CompileErrorI<
-    _ErrorMessageT extends any[],
-    _R,
-    _ErrorMessageT2 extends any[]
-> {
-    /**
-     * There should never be a value of this type
-     */
-    readonly __compileError: never;
-}
-/**
- * Left side of the `Either` type.
- */
-export interface Left<E> {
-    readonly _tag: "Left";
-    readonly left: E;
-}
+export type StatefulTugCallback<S, R, A> = (
+    ctx: StatefulTryContext<S, R>
+) => Promise<A> | A;
 
-/**
- * Right side of the `Either` type.
- */
-export interface Right<A> {
-    readonly _tag: "Right";
-    readonly right: A;
-}
+type UsedTug<R2, S2, T> = [R2] extends [never]
+    ? StatefulTug<S2, R2, T>
+    : [R2] extends [R2]
+    ? StatefulTug<S2, R2, T>
+    : CompileError<
+          [
+              "not a tug, or child-tug uses dependency that was not annotated in parent-tug"
+          ]
+      >;
 
-/**
- * Either type. Represents a value that can be either `Left` or `Right`.
- */
-export type Either<E, A> = Left<E> | Right<A>;
-
-type TugUncaughtException = unknown;
-/**
- * A reader function that reads R, and returns a Promise of Either<unknown, A>.
- * This is the core type of this library.
- */
-export type TugRPE<in out S, out A> = (
-    r: any,
-    s: S
-) => Promise<Either<TugUncaughtException, [S, A]>>;
-
-export type Dependency<R> = {
-    read: () => R;
+export type StatefulTryContext<in out S, out R> = {
+    use: <R2 extends R, S2, T>(
+        it: S2 extends void
+            ? UsedTug<R2, S2, T>
+            : S2 extends S
+            ? UsedTug<R2, S2, T>
+            : CompileError<["invalid state"]>
+    ) => Promise<T>;
+    deps: UnionToIntersection<R>;
+    readState: S extends void ? CompileError<["not stateful"]> : () => S;
+    setState: S extends void ? CompileError<["not stateful"]> : (it: S) => void;
+    modifyState: S extends void
+        ? CompileError<["not stateful"]>
+        : (cb: (old: S) => S) => void;
 };
-export const Dependency = <R>(): Dependency<R> => void 0 as any;
-
-const unwrapEither = <E, A>(e: Either<E, A>): A => {
-    if (e._tag === "Right") {
-        return e.right;
-    } else {
-        throw e.left;
-    }
-};
-
-const chainRpe =
-    <S, R, A, B>(
-        rpe: TugRPE<S, A>,
-        f: (a: A, deps: R) => TugRPE<S, B>
-    ): TugRPE<S, B> =>
-    async (deps: R, state: S) =>
-        rpe(deps, state).then(async (e) => {
-            if (e._tag === "Right") {
-                const res = await f(e.right[1], deps)(deps, e.right[0]);
-                return res;
-            } else {
-                return e;
-            }
-        });
-
-const TugRpe =
-    <R, A>(cb: StatefulTugCallback<any, R, A>): TugRPE<any, A> =>
-    async (dependencies: R, state: any) => {
-        let newState = state;
-        const context = {
-            deps: dependencies,
-            use: <T>(it: { rpe: TugRPE<any, any> }): Promise<T> =>
-                it
-                    .rpe(dependencies, newState)
-                    .then(unwrapEither)
-                    .then((it) => {
-                        newState = it[0];
-                        return it[1];
-                    }),
-            readState: () => newState,
-            setState: (it: any) => {
-                newState = it;
-            },
-            modifyState: (f: (it: any) => any) => {
-                newState = f(newState);
-            },
-        };
-
-        try {
-            const right = await cb(context as any);
-            return {
-                right: [newState, right],
-                _tag: "Right",
-            };
-        } catch (left) {
-            return {
-                _tag: "Left",
-                left: left,
-            };
-        }
-    };
 
 /**
  * The `tug` instance.
@@ -335,6 +263,23 @@ export class StatefulTugBuilderC<in out S, out R0> {
     }
 }
 
+export type TryContext<out R> = {
+    use: <R2 extends R, T>(
+        it: [R2] extends [never]
+            ? Tug<R2, T>
+            : [R2] extends [R2]
+            ? Tug<R2, T>
+            : CompileError<
+                  [
+                      "not a tug, or child-tug uses dependency that was not annotated in parent-tug"
+                  ]
+              >
+    ) => Promise<T>;
+    deps: UnionToIntersection<R>;
+};
+
+export type TugCallback<R, A> = (ctx: TryContext<R>) => Promise<A> | A;
+
 export class Tug<out R, out A> {
     private readonly rpe: TugRPE<any, any>;
     private constructor(rpe: TugRPE<void, A>) {
@@ -514,109 +459,3 @@ export class TugBuilderC<out R0> {
  * Constructs a new `tug` instance.
  */
 export const TugBuilder: TugBuilderC<never> = TugBuilderC.newBuilder();
-
-export type StatefulTugBuiltBy<
-    T extends StatefulTugBuilderC<any, any>,
-    A
-> = T extends StatefulTugBuilderC<infer S, infer D>
-    ? StatefulTug<S, D, A>
-    : never;
-
-export type TugBuiltBy<T extends TugBuilderC<any>, A> = T extends TugBuilderC<
-    infer D
->
-    ? Tug<D, A>
-    : never;
-
-/**
- * A callback that takes a context and returns a value or promise of a value.
- * The context contains the `use` function.
- *
- * If the callback throws an error or returns a rejected promise, the `tug` value will be an error.
- * If the callback returns a value or promise of a value, the `tug` value will be of that value.
- */
-export type StatefulTugCallback<S, R, A> = (
-    ctx: StatefulTryContext<S, R>
-) => Promise<A> | A;
-
-export type TugCallback<R, A> = (ctx: TryContext<R>) => Promise<A> | A;
-
-type UsedTug<R2, S2, T> = [R2] extends [never]
-    ? StatefulTug<S2, R2, T>
-    : [R2] extends [R2]
-    ? StatefulTug<S2, R2, T>
-    : CompileError<
-          [
-              "not a tug, or child-tug uses dependency that was not annotated in parent-tug"
-          ]
-      >;
-
-type UnionToIntersection<T> = (T extends any ? (x: T) => any : never) extends (
-    x: infer R
-) => any
-    ? R
-    : never;
-
-/**
- * Adds the `use` function to the context.
- */
-export type StatefulTryContext<in out S, out R> = {
-    /**
-     * Transforms a `tug` into a plain promise.
-     * Returns a successful promise if the `tug` succeeds,
-     * or a rejected promise if the `tug` fails.
-     */
-    use: <R2 extends R, S2, T>(
-        it: S2 extends void
-            ? UsedTug<R2, S2, T>
-            : S2 extends S
-            ? UsedTug<R2, S2, T>
-            : CompileError<["invalid state"]>
-    ) => Promise<T>;
-    deps: UnionToIntersection<R>;
-    readState: S extends void ? CompileError<["not stateful"]> : () => S;
-    setState: S extends void ? CompileError<["not stateful"]> : (it: S) => void;
-    modifyState: S extends void
-        ? CompileError<["not stateful"]>
-        : (cb: (old: S) => S) => void;
-};
-
-/**
- * Adds the `use` function to the context.
- */
-export type TryContext<out R> = {
-    /**
-     * Transforms a `tug` into a plain promise.
-     * Returns a successful promise if the `tug` succeeds,
-     * or a rejected promise if the `tug` fails.
-     */
-    use: <R2 extends R, T>(
-        it: [R2] extends [never]
-            ? Tug<R2, T>
-            : [R2] extends [R2]
-            ? Tug<R2, T>
-            : CompileError<
-                  [
-                      "not a tug, or child-tug uses dependency that was not annotated in parent-tug"
-                  ]
-              >
-    ) => Promise<T>;
-    deps: UnionToIntersection<R>;
-};
-
-export type StatefulTugState<T extends StatefulTug<any, any, any>> =
-    T extends StatefulTug<infer S, any, any> ? S : never;
-
-export type StatefulTugReads<T extends StatefulTug<any, any, any>> =
-    T extends StatefulTug<any, infer R, any> ? R : never;
-
-export type StatefulTugReturns<T extends StatefulTug<any, any, any>> =
-    T extends StatefulTug<any, any, infer A> ? A : never;
-
-export type TugReads<T extends Tug<any, any>> = T extends Tug<infer R, any>
-    ? R
-    : never;
-
-export type TugReturns<T extends Tug<any, any>> = T extends Tug<any, infer A>
-    ? A
-    : never;

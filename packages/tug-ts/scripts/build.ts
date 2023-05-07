@@ -28,9 +28,9 @@ export const copyPackageJson: Build<void> = (C) =>
             delete clone.files;
             delete clone.devDependencies;
 
-            clone["main"] = "lib/core.js";
-            clone["module"] = "es6/core.js";
-            clone["typings"] = "lib/core.d.ts";
+            clone["main"] = "lib/index.js";
+            clone["module"] = "es6/index.js";
+            clone["typings"] = "lib/index.d.ts";
 
             clone.version = version;
 

@@ -1,5 +1,6 @@
 import { expect, test } from "@jest/globals";
-import { Dependency, TugBuilder, Tug, TugBuiltBy } from "../src/core";
+import { Dependency, TugBuilder, TugBuiltBy } from "../src";
+import { Tug } from "../src/core";
 
 // eslint-disable-next-line @typescript-eslint/no-inferrable-types
 const FALSE: boolean = false;

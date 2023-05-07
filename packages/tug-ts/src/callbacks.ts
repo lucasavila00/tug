@@ -1,4 +1,6 @@
-import { Dependency, Tug, TugReads, TugReturns } from "./core";
+import { Tug } from "./core";
+import { TugReads, TugReturns } from "./infer";
+import { Dependency } from "./types";
 
 type CallbackProvider<
     RS extends Record<string, (...args: any) => Tug<any, any>>
