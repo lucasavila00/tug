@@ -1,6 +1,7 @@
-import { expect, test } from "@jest/globals";
+import { expect, jest, test } from "@jest/globals";
 import { Dependency, TugBuilder, TugBuiltBy } from "../src";
 import { Tug } from "../src/core";
+import { RetryPolicy } from "../src/retry";
 
 // eslint-disable-next-line @typescript-eslint/no-inferrable-types
 const FALSE: boolean = false;
@@ -510,65 +511,44 @@ test("chain", async () => {
     expect(v1).toBe("1");
 });
 
-test("stateful", async () => {
-    const v0 = TugBuilder.stateful<string>()
-        .try((ctx) => ctx.readState())
-        .chain((it) => TugBuilder.stateful<string>().of(String(it)))
-        .provideState("asd");
-
-    expect(await v0.exec.orThrow()).toBe("asd");
-
-    const v01 = await TugBuilder.stateful<string>()
-        .try((ctx) => ctx.readState())
-        .try(async (it, ctx) => it + (await ctx.use(v0)))
-        .provideState("def")
-        .exec.orThrow();
-    expect(v01).toBe("defasd");
-
-    const v10 = TugBuilder.stateful<string>()
-        .try((ctx) => ctx.readState())
-        .chain((it) => TugBuilder.stateful<string>().of(String(it)));
-
-    expect(await v10.exec.orThrow("asd")).toBe("asd");
-
-    const v101 = await TugBuilder.stateful<string>()
-        .try((ctx) => ctx.readState())
-        .try(async (it, ctx) => it + (await ctx.unsafeUseStateful(v10)))
-        .provideState("xx")
-        .exec.orThrow();
-    expect(v101).toBe("xxxx");
-
-    const v1 = await TugBuilder.stateful<string>()
-        .try(() => 1)
-        .chain((it) => TugBuilder.stateful<string>().of(String(it)))
-        .exec.orThrow("asd");
-    expect(v1).toBe("1");
-
-    const v2 = await TugBuilder.stateful<string>()
-        .try(() => 1)
-        .chain((it) => TugBuilder.stateful<string>().of(String(it)))
-        .exec.orThrow("asd");
-    expect(v2).toBe("1");
-
-    TugBuilder.stateful<string>()
-        .try(() => 1)
-        //@ts-expect-error
-        .chain((it) => TugBuilder.stateful<number>().of(String(it)))
-        //@ts-expect-error
-        .exec.orThrow("asd");
-});
-
-test("stateful2", async () => {
-    const v1 = await TugBuilder.stateful<string>()
-        .try((ctx) => ctx.readState())
-        .exec.orThrow("asd");
-    expect(v1).toBe("asd");
-
-    const v2 = await TugBuilder.stateful<string>()
-        .try((ctx) => ctx.setState("def"))
-        .try((_it, ctx) => ctx.readState())
-        .exec.orThrow("asd");
-    expect(v2).toBe("def");
+test("retrying", async () => {
+    const logger = jest.fn();
+    const Logger = Dependency<{ logger: typeof logger }>();
+    const v1 = await TugBuilder.depends(Logger)
+        .try((ctx) => {
+            ctx.deps.logger(JSON.stringify(ctx.retryStatus));
+            throw "err";
+        })
+        .retry(() =>
+            RetryPolicy.concat(
+                RetryPolicy.limitRetries(3),
+                RetryPolicy.constantDelay(1)
+            )
+        )
+        .provide(Logger, { logger })
+        .exec.either();
+    expect(logger.mock.calls).toMatchInlineSnapshot(`
+        [
+          [
+            "{"iterNumber":0,"cumulativeDelay":0,"previousDelay":{"_tag":"None"}}",
+          ],
+          [
+            "{"iterNumber":1,"cumulativeDelay":1,"previousDelay":{"_tag":"Some","value":1}}",
+          ],
+          [
+            "{"iterNumber":2,"cumulativeDelay":2,"previousDelay":{"_tag":"Some","value":1}}",
+          ],
+          [
+            "{"iterNumber":3,"cumulativeDelay":3,"previousDelay":{"_tag":"Some","value":1}}",
+          ],
+        ]
+    `);
+    expect(v1).toMatchInlineSnapshot(`
+        {
+          "_tag": "Left",
+          "left": "err",
+        }
+    `);
 });
 
 test("exec safe", async () => {
