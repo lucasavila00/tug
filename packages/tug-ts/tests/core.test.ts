@@ -1,7 +1,6 @@
-import { expect, jest, test } from "@jest/globals";
+import { expect, test } from "@jest/globals";
 import { Dependency, TugBuilder, TugBuiltBy } from "../src";
 import { Tug } from "../src/core";
-import { RetryPolicy } from "../src/retry";
 
 // eslint-disable-next-line @typescript-eslint/no-inferrable-types
 const FALSE: boolean = false;
@@ -509,46 +508,6 @@ test("chain", async () => {
         .chain((it) => TugBuilder.of(String(it)))
         .exec.orThrow();
     expect(v1).toBe("1");
-});
-
-test("retrying", async () => {
-    const logger = jest.fn();
-    const Logger = Dependency<{ logger: typeof logger }>();
-    const v1 = await TugBuilder.depends(Logger)
-        .try((ctx) => {
-            ctx.deps.logger(JSON.stringify(ctx.retryStatus));
-            throw "err";
-        })
-        .retry(() =>
-            RetryPolicy.concat(
-                RetryPolicy.limitRetries(3),
-                RetryPolicy.constantDelay(1)
-            )
-        )
-        .provide(Logger, { logger })
-        .exec.either();
-    expect(logger.mock.calls).toMatchInlineSnapshot(`
-        [
-          [
-            "{"iterNumber":0,"cumulativeDelay":0,"previousDelay":{"_tag":"None"}}",
-          ],
-          [
-            "{"iterNumber":1,"cumulativeDelay":1,"previousDelay":{"_tag":"Some","value":1}}",
-          ],
-          [
-            "{"iterNumber":2,"cumulativeDelay":2,"previousDelay":{"_tag":"Some","value":1}}",
-          ],
-          [
-            "{"iterNumber":3,"cumulativeDelay":3,"previousDelay":{"_tag":"Some","value":1}}",
-          ],
-        ]
-    `);
-    expect(v1).toMatchInlineSnapshot(`
-        {
-          "_tag": "Left",
-          "left": "err",
-        }
-    `);
 });
 
 test("exec safe", async () => {

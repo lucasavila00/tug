@@ -1,6 +1,4 @@
-import { RetryStatus } from "retry-ts";
 import { chainRpe, RPE, unwrapEither } from "./fp";
-import { applyAndDelay, RetryPolicy } from "./retry";
 import {
     CompileError,
     CompileErrorI,
@@ -26,7 +24,6 @@ export interface TryContext<out R> extends TugContext<R> {
 
 export type TugContext<out R> = {
     deps: UnionToIntersection<R>;
-    retryStatus: RetryStatus | undefined;
 };
 
 export type TugCallback<R, A> = (ctx: TryContext<R>) => Promise<A> | A;
@@ -53,25 +50,6 @@ export class Tug<out R, out A> {
                 ...value,
             })
         );
-    }
-
-    public retry(f: (ctx: TugContext<R>) => RetryPolicy): Tug<R, A> {
-        const go = (status: RetryStatus): Tug<R, A> =>
-            this.provide(null as any, { __retryStatus: status }).fold(
-                (e) =>
-                    TugBuilder.try((ctx) =>
-                        applyAndDelay(f(ctx as any), status)
-                    ).chain((status) => {
-                        if (status.previousDelay._tag === "None") {
-                            return TugBuilder.left(e);
-                        } else {
-                            return go(status);
-                        }
-                    }) as any,
-                (a) => TugBuilder.of<R, A>(a) as any
-            );
-
-        return go(RetryPolicy.defaultRetryStatus);
     }
 
     public depends: <R2>(d: Dependency<R2>) => Tug<R2 | R, A> = (_it) => {
@@ -166,7 +144,6 @@ export class Tug<out R, out A> {
         const context = {
             deps: dependencies,
             use,
-            retryStatus: dependencies.__retryStatus,
         };
         return context;
     };
