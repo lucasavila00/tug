@@ -1,4 +1,4 @@
-import { Dependency, TugBuilder } from "tug-ts";
+import { Dependency } from "tug-ts";
 
 // start database mock
 
@@ -17,29 +17,25 @@ type DatabaseClient = {
 
 // eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Capacities {
-    export interface LoggerT {
+    export interface Logger {
         Logger: {
             log: (msg: string) => void;
             error: (msg: string) => void;
         };
     }
-    export const Logger = Dependency<LoggerT>();
+    export const Logger = Dependency<Logger>();
 
-    export interface DatabaseT {
+    export interface Database {
         Database: {
             getInstance: () => Promise<DatabaseClient>;
         };
     }
-    export const Database = Dependency<DatabaseT>();
+    export const Database = Dependency<Database>();
 
-    export interface UserContextT {
+    export interface UserContext {
         UserContext: {
             currentUserId: () => Promise<string | undefined>;
         };
     }
-    export const UserContext = Dependency<UserContextT>();
+    export const UserContext = Dependency<UserContext>();
 }
-
-export const AllCapacitiesTug = TugBuilder.depends(Capacities.UserContext)
-    .depends(Capacities.Database)
-    .depends(Capacities.Logger);

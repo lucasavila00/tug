@@ -1,30 +1,42 @@
+import { Tug, TugBuilder } from "tug-ts";
 import { AuthModule } from "./auth";
-import { AllCapacitiesTug } from "./core";
 import { OrderModule } from "./order";
+import { Capacities } from "./core";
 import { UserModule } from "./user";
 
-const AppTug = AllCapacitiesTug.depends(AuthModule)
-    .depends(OrderModule)
-    .depends(UserModule);
-
 const canCurrentUserEditOrder = (orderId: string) =>
-    AppTug.try(async (ctx) => {
-        const orderItem = await ctx.use(
-            ctx.deps.OrderModule.getOrderById(orderId)
-        );
-        const user = await ctx.use(ctx.deps.AuthModule.getLoggedInUser());
-        return orderItem.userId === user.id;
-    });
+    TugBuilder.depends(AuthModule)
+        .depends(OrderModule)
+        .ofDeps()
+        .bind("orderItem", (acc) => acc.deps.OrderModule.getOrderById(orderId))
+        .bind("currentUser", (acc) => acc.deps.AuthModule.getLoggedInUser())
+        .try(
+            (acc) => acc.orderItem.userId === acc.currentUser.id
+        ) satisfies Tug<any, boolean>;
 
 export const deleteOrderHandler = (id: string) =>
-    AppTug.try(async (ctx) => {
-        const canUserEditOrder = await ctx.use(canCurrentUserEditOrder(id));
-
-        if (!canUserEditOrder) {
-            throw new Error("User is not owner");
+    canCurrentUserEditOrder(id).flatMap((canUserEditOrder, ctx) => {
+        if (canUserEditOrder) {
+            return ctx.deps.OrderModule.deleteOrder(id);
         }
-        await ctx.use(ctx.deps.OrderModule.deleteOrder(id));
+        return TugBuilder.left(new Error("User is not owner"));
     });
+
+// Try can't widen the dependency types, so we need to do it manually
+export const deleteOrderHandlerTry = (id: string) =>
+    TugBuilder.depends(OrderModule)
+        .depends(AuthModule)
+        .depends(UserModule)
+        .depends(Capacities.Database)
+        .depends(Capacities.Logger)
+        .depends(Capacities.UserContext)
+        .try(async (ctx) => {
+            const canUserEditOrder = await ctx.use(canCurrentUserEditOrder(id));
+            if (!canUserEditOrder) {
+                throw new Error("User is not owner");
+            }
+            return ctx.use(ctx.deps.OrderModule.deleteOrder(id));
+        });
 
 export const app = {
     deleteOrder: deleteOrderHandler,

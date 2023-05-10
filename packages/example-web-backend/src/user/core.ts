@@ -30,7 +30,7 @@ const insertUser = (user: UserData) =>
         return insertedUser;
     });
 
-export const UserModuleTug = {
+export const UserModuleTugs = {
     getUserById,
     getAllUsers,
     insertUser,

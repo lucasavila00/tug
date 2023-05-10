@@ -1,8 +1,8 @@
 import { Dependency } from "tug-ts";
-import { UserModuleTug } from "./core";
+import { UserModuleTugs } from "./core";
 
 export interface UserModuleT {
-    UserModule: typeof UserModuleTug;
+    UserModule: typeof UserModuleTugs;
 }
 
 export const UserModule = Dependency<UserModuleT>();
